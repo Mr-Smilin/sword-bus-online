@@ -1,0 +1,12 @@
+{
+  "files": {
+    "main.css": "/sword-art-offline/static/css/main.867a7610.css",
+    "main.js": "/sword-art-offline/static/js/main.0bc3ba42.js",
+    "static/js/206.a8e02176.chunk.js": "/sword-art-offline/static/js/206.a8e02176.chunk.js",
+    "index.html": "/sword-art-offline/index.html"
+  },
+  "entrypoints": [
+    "static/css/main.867a7610.css",
+    "static/js/main.0bc3ba42.js"
+  ]
+}
