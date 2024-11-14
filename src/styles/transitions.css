@@ -1,0 +1,33 @@
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* 舊視圖保持靜止 */
+::view-transition-old(root) {
+  z-index: 1;
+}
+
+/* 新視圖執行動畫 */
+::view-transition-new(root) {
+  z-index: 9999;
+}
+
+/* 確保主題相關的樣式正確應用 */
+:root {
+  --theme-transition-duration: 300ms;
+}
+
+.dark-theme {
+  color-scheme: dark;
+}
+
+.light-theme {
+  color-scheme: light;
+}
+
+/* 優化動畫性能 */
+html {
+  view-transition-name: root;
+}
