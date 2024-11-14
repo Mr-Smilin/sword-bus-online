@@ -4,7 +4,7 @@ import { useGameData } from "../hooks/useGameData";
 const GameContext = createContext(null);
 
 export const GameProvider = ({ children }) => {
-	const gameData = useGameData();
+	const gameData = useGameData("warrior");
 
 	return (
 		<GameContext.Provider value={gameData}>{children}</GameContext.Provider>

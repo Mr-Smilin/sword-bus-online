@@ -5,23 +5,80 @@ import {
 	Typography,
 	Box,
 	LinearProgress,
-	IconButton,
-	Grid2 as Grid,
+	Grid,
+	Tabs,
+	Tab,
+	Button,
 } from "@mui/material";
-import {
-	Heart, // 生命值
-	Brain, // 魔力值
-	Swords, // 攻擊力
-	Wind, // 敏捷
-	Star, // 等級
-	Sword, // 武器
-} from "lucide-react";
+import { styled } from "@mui/material/styles";
+import { Heart, Brain, Swords, Wind, Star, Sword } from "lucide-react";
+import ProfessionTab from "./ProfessionTab";
 
 /**
- * 角色資訊卡片元件
- * 整合角色狀態和武器裝備
+ * 狀態條元件
+ */
+const StatBar = ({ icon: Icon, label, value, maxValue, color = "primary" }) => (
+	<Grid container spacing={1} alignItems="center">
+		<Grid item xs="auto">
+			<Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+				<Icon size={16} />
+				<Typography variant="body2">
+					{label}: {Math.round(value)}/{maxValue}
+				</Typography>
+			</Box>
+		</Grid>
+		<Grid item xs={6}>
+			<LinearProgress
+				variant="determinate"
+				value={(value / maxValue) * 100}
+				color={color}
+				sx={{
+					"& .MuiLinearProgress-bar": {
+						transition: "transform 0.8s ease-in-out",
+					},
+				}}
+			/>
+		</Grid>
+	</Grid>
+);
+
+/**
+ * Tab 面板組件
+ */
+const TabPanel = ({ children, value, index, ...other }) => (
+	<div
+		role="tabpanel"
+		hidden={value !== index}
+		id={`character-tabpanel-${index}`}
+		aria-labelledby={`character-tab-${index}`}
+		{...other}
+		style={{
+			height: "100%",
+			display: value === index ? "flex" : "none",
+			flexDirection: "column",
+		}}
+	>
+		{value === index && children}
+	</div>
+);
+
+/**
+ * 自定義Tab樣式
+ */
+const StyledTab = styled(Tab)({
+	minHeight: "32px",
+	height: "32px",
+	fontSize: "0.875rem",
+	textTransform: "none",
+	padding: "0 16px",
+});
+
+/**
+ * 角色卡片主組件
  */
 export const CharacterCard = () => {
+	// Tab 切換狀態
+	const [tabValue, setTabValue] = useState(0);
 	// 動畫相關
 	const { style, AnimatedComponent } = useAnimation("fadeIn", {
 		config: { duration: 500 },
@@ -32,8 +89,9 @@ export const CharacterCard = () => {
 	const [currentMP, setCurrentMP] = useState(80);
 	const animatedHP = useNumberAnimation(currentHP);
 	const animatedMP = useNumberAnimation(currentMP);
+	const animatedExp = useNumberAnimation(75);
 
-	// 模擬血量變化的示例函數
+	// 模擬血量變化
 	const simulateHPChange = () => {
 		const newHP = Math.max(
 			0,
@@ -42,163 +100,173 @@ export const CharacterCard = () => {
 		setCurrentHP(newHP);
 	};
 
-	// 經驗值動畫
-	const animatedExp = useNumberAnimation(75);
+	// Tab 切換處理
+	const handleTabChange = (event, newValue) => {
+		setTabValue(newValue);
+	};
 
 	return (
 		<AnimatedComponent style={style}>
-			<Paper sx={{ p: 2, height: "100%", position: "relative" }}>
-				{/* 標題區與等級資訊 */}
-				<Grid container alignItems="center" spacing={1} sx={{ mb: 2 }}>
-					<Grid xs="auto">
-						<Typography variant="h6" component="h2">
-							角色狀態
-						</Typography>
-					</Grid>
-					<Grid xs="auto">
-						<Star size={20} />
-					</Grid>
-					<Grid xs>
-						<Typography variant="body2" display="inline">
-							等級 15
-						</Typography>
-						<Box sx={{ width: "100%", mt: 0.5 }}>
-							<LinearProgress
-								variant="determinate"
-								value={animatedExp}
-								sx={{
-									"& .MuiLinearProgress-bar": {
-										transition: "transform 0.8s ease-in-out",
-									},
-								}}
-							/>
-							<Typography variant="caption" color="text.secondary">
-								經驗值: 7500 / 10000
-							</Typography>
-						</Box>
-					</Grid>
-				</Grid>
-
-				{/* 武器欄位 - 絕對定位在右側中間 */}
-				<Box
-					sx={{
-						position: "absolute",
-						right: 16,
-						top: "50%",
-						transform: "translateY(-50%)",
-						display: "flex",
-						flexDirection: "column",
-						alignItems: "center",
-					}}
-				>
-					<Box
+			<Paper
+				sx={{
+					height: { xs: "280px", sm: "320px" },
+					display: "flex",
+					flexDirection: "column",
+				}}
+			>
+				{/* 標題與Tab */}
+				<Box sx={{ borderBottom: 1, borderColor: "divider" }}>
+					<Tabs
+						value={tabValue}
+						onChange={handleTabChange}
 						sx={{
-							border: 1,
-							borderColor: "divider",
-							borderRadius: 1,
-							display: "flex",
-							alignItems: "center",
-							justifyContent: "center",
-							width: 60,
-							height: 60,
-							transition: "all 0.2s ease-in-out",
-							"&:hover": {
-								borderColor: "primary.main",
-								bgcolor: "action.hover",
-								transform: "scale(1.05)",
+							minHeight: "32px",
+							height: "32px",
+							"& .MuiTabs-indicator": {
+								height: 2,
 							},
 						}}
 					>
-						<IconButton onClick={simulateHPChange}>
-							<Sword size={32} />
-						</IconButton>
-					</Box>
-					<Typography variant="caption" align="center" display="block">
-						武器
-					</Typography>
+						<StyledTab label="角色" />
+						<StyledTab label="職業" />
+					</Tabs>
 				</Box>
 
-				{/* 狀態值 - 左側內容區，預留右側空間給武器圖標 */}
-				<Box sx={{ width: "calc(100% - 100px)" }}>
-					<Grid container spacing={2}>
-						<Grid xs={12}>
-							<Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-								<Heart size={20} />
-								<Typography variant="body2" sx={{ ml: 1 }}>
-									生命值: {Math.round(animatedHP)}/100
-								</Typography>
-							</Box>
-							<LinearProgress
-								variant="determinate"
-								value={animatedHP}
-								color="error"
-								sx={{
-									mb: 2,
-									"& .MuiLinearProgress-bar": {
-										transition: "transform 0.8s ease-in-out",
-									},
-								}}
-							/>
-						</Grid>
+				{/* 內容區域 */}
+				<Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
+					{/* 角色狀態面板 */}
+					<TabPanel value={tabValue} index={0}>
+						{/* 主要內容區 */}
+						<Box sx={{ p: 1.5, flexGrow: 1, overflow: "auto" }}>
+							<Grid container spacing={1.5}>
+								{/* 等級資訊 */}
+								<Grid item xs={12}>
+									<Grid container spacing={1} alignItems="center">
+										<Grid item xs="auto">
+											<Box
+												sx={{ display: "flex", alignItems: "center", gap: 1 }}
+											>
+												<Star size={16} />
+												<Typography variant="body2">等級 15</Typography>
+											</Box>
+										</Grid>
+										<Grid item xs={6}>
+											<Box>
+												<LinearProgress
+													variant="determinate"
+													value={animatedExp}
+													sx={{
+														"& .MuiLinearProgress-bar": {
+															transition: "transform 0.8s ease-in-out",
+														},
+													}}
+												/>
+												<Typography variant="caption" color="text.secondary">
+													經驗值: 7500 / 10000
+												</Typography>
+											</Box>
+										</Grid>
+									</Grid>
+								</Grid>
 
-						<Grid xs={12}>
-							<Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-								<Brain size={20} />
-								<Typography variant="body2" sx={{ ml: 1 }}>
-									魔力值: {Math.round(animatedMP)}/80
-								</Typography>
-							</Box>
-							<LinearProgress
-								variant="determinate"
-								value={(animatedMP / 80) * 100}
-								color="primary"
-								sx={{
-									mb: 2,
-									"& .MuiLinearProgress-bar": {
-										transition: "transform 0.8s ease-in-out",
-									},
-								}}
-							/>
-						</Grid>
+								{/* 生命值 */}
+								<Grid item xs={12}>
+									<StatBar
+										icon={Heart}
+										label="生命值"
+										value={animatedHP}
+										maxValue={100}
+										color="error"
+									/>
+								</Grid>
 
-						{/* 基礎屬性值 */}
-						<Grid xs={6}>
-							<Box
+								{/* 魔力值 */}
+								<Grid item xs={12}>
+									<StatBar
+										icon={Brain}
+										label="魔力值"
+										value={animatedMP}
+										maxValue={80}
+									/>
+								</Grid>
+
+								{/* 基礎屬性值 */}
+								<Grid item xs={6}>
+									<Box
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											transition: "transform 0.2s ease-in-out",
+											"&:hover": {
+												transform: "translateX(5px)",
+											},
+										}}
+									>
+										<Swords size={16} />
+										<Typography variant="body2" sx={{ ml: 1 }}>
+											力量: 15
+										</Typography>
+									</Box>
+								</Grid>
+								<Grid item xs={6}>
+									<Box
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											transition: "transform 0.2s ease-in-out",
+											"&:hover": {
+												transform: "translateX(5px)",
+											},
+										}}
+									>
+										<Wind size={16} />
+										<Typography variant="body2" sx={{ ml: 1 }}>
+											敏捷: 12
+										</Typography>
+									</Box>
+								</Grid>
+							</Grid>
+						</Box>
+
+						{/* 武器欄位 */}
+						<Box
+							sx={{
+								p: 1.5,
+								borderTop: 1,
+								borderColor: "divider",
+								backgroundColor: (theme) =>
+									theme.palette.mode === "light"
+										? theme.palette.grey[50]
+										: theme.palette.grey[900],
+							}}
+						>
+							<Button
+								variant="outlined"
+								onClick={simulateHPChange}
+								startIcon={<Sword size={20} />}
 								sx={{
-									display: "flex",
-									alignItems: "center",
-									transition: "transform 0.2s ease-in-out",
+									width: "100%",
+									py: 1,
+									borderColor: "divider",
 									"&:hover": {
-										transform: "translateX(5px)",
+										borderColor: "primary.main",
+										bgcolor: "action.hover",
 									},
 								}}
 							>
-								<Swords size={20} />
-								<Typography variant="body2" sx={{ ml: 1 }}>
-									力量: 15
-								</Typography>
-							</Box>
-						</Grid>
-						<Grid xs={6}>
-							<Box
-								sx={{
-									display: "flex",
-									alignItems: "center",
-									transition: "transform 0.2s ease-in-out",
-									"&:hover": {
-										transform: "translateX(5px)",
-									},
-								}}
-							>
-								<Wind size={20} />
-								<Typography variant="body2" sx={{ ml: 1 }}>
-									敏捷: 12
-								</Typography>
-							</Box>
-						</Grid>
-					</Grid>
+								<Typography variant="body2">武器</Typography>
+							</Button>
+						</Box>
+					</TabPanel>
+
+					{/* 職業面板 */}
+					<TabPanel value={tabValue} index={1}>
+						<ProfessionTab />
+					</TabPanel>
 				</Box>
 			</Paper>
 		</AnimatedComponent>
 	);
 };
+
+export default CharacterCard;

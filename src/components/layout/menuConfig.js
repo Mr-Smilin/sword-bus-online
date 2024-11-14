@@ -19,25 +19,23 @@ export const menuItems = [
  * 取得選單項目樣式
  */
 export const getMenuItemStyle = (itemId, isSelected, theme) => ({
-	"&.MuiListItem-root": {
+	backgroundColor: isSelected
+		? theme.palette.mode === "light"
+			? theme.palette.success.light
+			: theme.palette.primary.light
+		: "transparent",
+	color: isSelected
+		? theme.palette.mode === "light"
+			? theme.palette.success.contrastText
+			: theme.palette.primary.contrastText
+		: theme.palette.text.primary,
+	"&:hover": {
 		backgroundColor: isSelected
 			? theme.palette.mode === "light"
 				? theme.palette.success.light
-				: theme.palette.primary.light
-			: "transparent",
-		color: isSelected
-			? theme.palette.mode === "light"
-				? theme.palette.success.contrastText
-				: theme.palette.primary.contrastText
-			: theme.palette.text.primary,
-		"&:hover": {
-			backgroundColor: isSelected
-				? theme.palette.mode === "light"
-					? theme.palette.success.light
-					: theme.palette.primary.dark
-				: theme.palette.mode === "light"
-				? theme.palette.success.light
-				: theme.palette.primary.light,
-		},
+				: theme.palette.primary.dark
+			: theme.palette.mode === "light"
+			? theme.palette.success.light
+			: theme.palette.primary.light,
 	},
 });

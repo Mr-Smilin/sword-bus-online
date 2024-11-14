@@ -1,25 +1,18 @@
-/**
- * @file NavigationDrawer.jsx
- * @description 側邊導航欄組件
- */
 import React from "react";
 import {
 	Box,
 	List,
-	ListItem,
 	ListItemIcon,
+	ListItemText,
 	Toolbar,
 	IconButton,
 	useTheme,
 	useMediaQuery,
+	ListItemButton,
 } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import PushPinIcon from "@mui/icons-material/PushPin";
-import {
-	TransitionDrawer,
-	CollapsibleText,
-	PinButton,
-} from "./StyledComponents";
+import { TransitionDrawer, PinButton } from "./StyledComponents";
 import { menuItems, getMenuItemStyle } from "./menuConfig";
 import { useLayout } from "../../contexts";
 
@@ -47,8 +40,7 @@ const DrawerContent = ({ onMenuClick, selectedPanel }) => {
 			</Toolbar>
 			<List>
 				{menuItems.map((item) => (
-					<ListItem
-						button
+					<ListItemButton
 						key={item.id}
 						onClick={() => onMenuClick(item)}
 						sx={getMenuItemStyle(item.id, selectedPanel === item.id, theme)}
@@ -56,11 +48,15 @@ const DrawerContent = ({ onMenuClick, selectedPanel }) => {
 						<ListItemIcon sx={{ minWidth: collapsedWidth - 16 }}>
 							{item.icon}
 						</ListItemIcon>
-						<CollapsibleText
+						<ListItemText
 							primary={item.text}
-							isexpanded={String(isDrawerExpanded)}
+							sx={{
+								opacity: isDrawerExpanded ? 1 : 0,
+								transition: "opacity 0.2s",
+								whiteSpace: "nowrap",
+							}}
 						/>
-					</ListItem>
+					</ListItemButton>
 				))}
 			</List>
 			{!isMobile && (
