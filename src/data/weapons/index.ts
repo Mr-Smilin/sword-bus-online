@@ -286,8 +286,7 @@ export const weapons: Weapon[] = [
         max: 14
       },
       attributes: {
-        intelligence: 6,
-        mana: 20
+        intelligence: 6
       },
       requirements: {
         level: 10,
@@ -311,8 +310,7 @@ export const weapons: Weapon[] = [
         max: 25
       },
       attributes: {
-        intelligence: 12,
-        mana: 50
+        intelligence: 12
       },
       requirements: {
         level: 25,
@@ -336,8 +334,7 @@ export const weapons: Weapon[] = [
         max: 45
       },
       attributes: {
-        intelligence: 20,
-        mana: 100
+        intelligence: 20
       },
       requirements: {
         level: 40,

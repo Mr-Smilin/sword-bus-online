@@ -71,8 +71,7 @@ export const specialClasses: Record<string, Class> = {
         baseClass: 'mage',
         level: 20,
         stats: {
-          intelligence: 25,
-          mana: 400
+          intelligence: 25
         }
       }
     },

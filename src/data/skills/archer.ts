@@ -1,3 +1,5 @@
+import {Skill} from '../type';
+
 export const archerSkills: Record<string, Skill[]> = {
     // 弓箭手基礎技能
     archer: [

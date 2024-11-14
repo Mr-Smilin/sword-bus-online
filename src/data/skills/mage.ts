@@ -1,3 +1,5 @@
+import {Skill} from '../type';
+
 export const mageSkills: Record<string, Skill[]> = {
     // 法師基礎技能
     mage: [

@@ -126,8 +126,7 @@ export const supportClasses: Record<string, Class> = {
         baseClass: 'priest',
         level: 20,
         stats: {
-          intelligence: 30,
-          mana: 500
+          intelligence: 30
         }
       }
     },
@@ -354,8 +353,7 @@ export const supportClasses: Record<string, Class> = {
         baseClass: 'priest',
         level: 20,
         stats: {
-          intelligence: 28,
-          health: 400
+          intelligence: 28
         }
       }
     }

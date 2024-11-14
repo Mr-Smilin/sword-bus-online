@@ -45,7 +45,7 @@ export const agilityClasses: Record<string, Class> = {
         {
           level: 3,
           unlockedSkills: ['wind_step'],
-          attributeBonus: { dexterity: 2, agility: 2 }
+          attributeBonus: { dexterity: 2 }
         },
         {
           level: 5,

@@ -125,8 +125,7 @@ export const combatClasses: Record<string, Class> = {
         baseClass: 'warrior',
         level: 20,
         stats: {
-          strength: 25,
-          health: 500
+          strength: 25
         }
       }
     },
@@ -330,8 +329,7 @@ export const combatClasses: Record<string, Class> = {
         baseClass: 'mage',
         level: 20,
         stats: {
-          intelligence: 30,
-          mana: 500
+          intelligence: 30
         }
       }
     },
@@ -406,8 +404,7 @@ export const combatClasses: Record<string, Class> = {
         baseClass: 'mage',
         level: 20,
         stats: {
-          intelligence: 28,
-          health: 400
+          intelligence: 28
         }
       }
     }
