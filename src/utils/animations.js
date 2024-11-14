@@ -1,6 +1,6 @@
 import { keyframes } from "@emotion/react";
 import { useSpring, animated } from "react-spring";
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Paper } from "@mui/material";
 
 /**
@@ -144,14 +144,21 @@ export const usePanelContainerAnimation = ({
 	deps = null,
 	duration = 1000, // 預設動畫時間
 } = {}) => {
+	// 使用 useRef 來追蹤是否是首次渲染
+	const isFirstRender = useRef(true);
+
 	// 追蹤是否需要播放動畫
-	const [shouldAnimate, setShouldAnimate] = useState(deps === null);
+	const [shouldAnimate, setShouldAnimate] = useState(() => {
+		// 首次渲染且有 deps 時不立即觸發動畫
+		return deps === null && !isFirstRender.current;
+	});
 
 	// 當依賴項改變時，觸發動畫
 	useEffect(() => {
-		if (deps !== null) {
+		if (deps !== null && !isFirstRender.current) {
 			setShouldAnimate(true);
 		}
+		isFirstRender.current = false;
 	}, [deps]);
 
 	// 計算動畫配置

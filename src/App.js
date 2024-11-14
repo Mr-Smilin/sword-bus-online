@@ -4,7 +4,7 @@ import { ThemeProvider, CssBaseline } from "@mui/material";
 import GameLayout from "./components/GameLayout";
 import { lightTheme, darkTheme } from "./theme";
 import { useThemeTransition } from "./hooks/useThemeTransition";
-import { GameProvider } from "./contexts/GameContext";
+import { GameProvider, LayoutProvider } from "./contexts";
 import "./styles/transitions.css";
 
 function App() {
@@ -25,9 +25,11 @@ function App() {
 		<ThemeProvider theme={isDarkMode ? darkTheme : lightTheme}>
 			<CssBaseline />
 			<GameProvider>
-				<Router>
-					<GameLayout isDarkMode={isDarkMode} onToggleTheme={toggleTheme} />
-				</Router>
+				<LayoutProvider>
+					<Router>
+						<GameLayout isDarkMode={isDarkMode} onToggleTheme={toggleTheme} />
+					</Router>
+				</LayoutProvider>
 			</GameProvider>
 		</ThemeProvider>
 	);
