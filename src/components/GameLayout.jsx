@@ -25,6 +25,9 @@ import {
 } from "@mui/icons-material";
 import Login from "./login/Login";
 import ThemeToggle from "./ThemeToggle";
+import { CharacterCard, CharacterPanel } from "./character";
+
+// hooks
 import { useGame } from "../contexts/GameContext";
 import { useModalPanel } from "../hooks/useModalPanel";
 
@@ -166,7 +169,7 @@ const GameLayout = ({ isDarkMode, onToggleTheme }) => {
 	const renderPanelContent = () => {
 		switch (selectedPanel) {
 			case "character":
-				return <div>角色詳細資訊面板</div>;
+				return <CharacterPanel />;
 			case "inventory":
 				return <div>背包道具內容面板</div>;
 			case "skills":
@@ -267,30 +270,16 @@ const GameLayout = ({ isDarkMode, onToggleTheme }) => {
 						gridTemplateRows: "auto",
 					}}
 				>
-					{/* 角色狀態卡片 */}
-					<Paper
-						sx={{
-							p: 2,
-							gridColumn: { xs: "1", sm: "1 / 2" },
-							minHeight: "200px",
-						}}
-					>
-						角色狀態
-					</Paper>
-					{/* 裝備欄位卡片 */}
-					<Paper
-						sx={{
-							p: 2,
-							gridColumn: { xs: "1", sm: "2 / 3" },
-							minHeight: "200px",
-						}}
-					>
-						裝備欄位
-					</Paper>
+					{/* 暫時空置 */}
+					<Box sx={{ gridColumn: { xs: "1", sm: "1 / 2" } }}></Box>
+					{/* 角色欄位卡片 */}
+					<Box sx={{ gridColumn: { xs: "1", sm: "2 / 3" } }}>
+						<CharacterCard />
+					</Box>
 					{/* 主要內容卡片 */}
 					<Paper
+						elevation={0}
 						sx={{
-							p: 2,
 							gridColumn: { xs: "1", sm: "1 / 3" },
 							minHeight: "200px",
 						}}
