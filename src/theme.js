@@ -21,7 +21,7 @@ const customColors = {
 	},
 	// 背景色彩
 	background: {
-		default: "#f6efef", // 預設背景
+		default: "#cccccc", // 預設背景
 		paper: "#f5f5f5", // 卡片背景
 	},
 	// 文字顏色
@@ -62,7 +62,7 @@ export const darkTheme = createTheme({
 		},
 		background: {
 			default: "#121212", // 深色背景
-			paper: "#2b2525", // 稍淺的深色
+			paper: "#3b3535", // 稍淺的深色
 		},
 		text: {
 			primary: "#ffffff", // 白色文字

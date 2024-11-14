@@ -31,3 +31,29 @@
 html {
   view-transition-name: root;
 }
+
+/* 面板容器基礎樣式 */
+.panel-container {
+  transform-origin: center;
+  backface-visibility: hidden;
+}
+
+/* 面板內容樣式 */
+.panel-content {
+  height: 100%;
+  width: 100%;
+}
+
+/* 優化效能 */
+.panel-container,
+.panel-content {
+  will-change: transform, clip-path, opacity;
+}
+
+/* 無障礙支援 */
+@media (prefers-reduced-motion: reduce) {
+  .panel-container {
+    transition: none !important;
+    animation: none !important;
+  }
+}

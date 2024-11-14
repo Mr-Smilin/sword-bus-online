@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
 	Box,
 	Drawer,
@@ -30,6 +30,7 @@ import { CharacterCard, CharacterPanel } from "./character";
 // hooks
 import { useGame } from "../contexts/GameContext";
 import { useModalPanel } from "../hooks/useModalPanel";
+import { usePanelContainerAnimation } from "../utils/animations";
 
 /**
  * 定義選單項目配置
@@ -93,6 +94,49 @@ const GameLayout = ({ isDarkMode, onToggleTheme }) => {
 	// 使用自定義 Hook 管理面板和彈出視窗
 	const { selectedPanel, isModalOpen, handlePanelChange, closeModal } =
 		useModalPanel("character");
+
+	// 動畫管理
+	// 記憶化空白面板內容 - 如果有內容的話
+	const emptyPanelContent = useMemo(() => <Box>{/* 空白區域內容 */}</Box>, []);
+
+	// 記憶化角色卡片內容
+	const characterCardContent = useMemo(() => <CharacterCard />, []); // 如果 CharacterCard 需要特定的 props 更新，將其加入依賴陣列
+
+	// 記憶化主要內容面板的內容
+	const mainPanelContent = useMemo(() => {
+		const getContent = () => {
+			switch (selectedPanel) {
+				case "character":
+					return <CharacterPanel />;
+				case "inventory":
+					return <div>背包道具內容面板</div>;
+				case "skills":
+					return <div>技能列表面板</div>;
+				case "map":
+					return <div>地圖面板</div>;
+				default:
+					return <div>請選擇一個面板</div>;
+			}
+		};
+
+		return getContent();
+	}, [selectedPanel]);
+
+	// 空白面板動畫 - 加入自訂動畫時間
+	const { style: emptyPanelStyle, AnimatedContainer: EmptyPanelContainer } =
+		usePanelContainerAnimation({});
+
+	// 角色卡片動畫
+	const {
+		style: characterCardStyle,
+		AnimatedContainer: CharacterCardContainer,
+	} = usePanelContainerAnimation({});
+
+	// 主要內容面板動畫
+	const { style: mainPanelStyle, AnimatedContainer: MainPanelContainer } =
+		usePanelContainerAnimation({
+			deps: selectedPanel,
+		});
 
 	/**
 	 * 處理側邊欄開關（移動裝置）
@@ -161,25 +205,6 @@ const GameLayout = ({ isDarkMode, onToggleTheme }) => {
 			</List>
 		</>
 	);
-
-	/**
-	 * 渲染選中面板的內容
-	 * @returns {JSX.Element} 面板內容
-	 */
-	const renderPanelContent = () => {
-		switch (selectedPanel) {
-			case "character":
-				return <CharacterPanel />;
-			case "inventory":
-				return <div>背包道具內容面板</div>;
-			case "skills":
-				return <div>技能列表面板</div>;
-			case "map":
-				return <div>地圖面板</div>;
-			default:
-				return <div>請選擇一個面板</div>;
-		}
-	};
 
 	return (
 		<Box sx={{ display: "flex", height: "100vh" }}>
@@ -271,21 +296,32 @@ const GameLayout = ({ isDarkMode, onToggleTheme }) => {
 					}}
 				>
 					{/* 暫時空置 */}
-					<Box sx={{ gridColumn: { xs: "1", sm: "1 / 2" } }}></Box>
-					{/* 角色欄位卡片 */}
-					<Box sx={{ gridColumn: { xs: "1", sm: "2 / 3" } }}>
-						<CharacterCard />
-					</Box>
-					{/* 主要內容卡片 */}
-					<Paper
-						elevation={0}
-						sx={{
-							gridColumn: { xs: "1", sm: "1 / 3" },
-							minHeight: "200px",
-						}}
+					<EmptyPanelContainer
+						style={emptyPanelStyle}
+						sx={{ gridColumn: { xs: "1", sm: "1 / 2" } }}
 					>
-						{!isModalOpen && renderPanelContent()}
-					</Paper>
+						{emptyPanelContent}
+					</EmptyPanelContainer>
+					{/* 角色欄位卡片 */}
+					<CharacterCardContainer
+						style={characterCardStyle}
+						sx={{ gridColumn: { xs: "1", sm: "2 / 3" } }}
+					>
+						{characterCardContent}
+					</CharacterCardContainer>
+					{/* 主要內容卡片 */}
+					{!isModalOpen && (
+						<MainPanelContainer
+							style={mainPanelStyle}
+							sx={{
+								gridColumn: { xs: "1", sm: "1 / 3" },
+								minHeight: "200px",
+								bgcolor: (theme) => theme.palette.background.paper,
+							}}
+						>
+							{mainPanelContent}
+						</MainPanelContainer>
+					)}
 				</Box>
 
 				{/* 彈出式地圖視窗 */}
@@ -322,7 +358,7 @@ const GameLayout = ({ isDarkMode, onToggleTheme }) => {
 						>
 							<CloseIcon />
 						</IconButton>
-						{renderPanelContent()}
+						{mainPanelContent}
 					</Paper>
 				</Modal>
 			</Box>

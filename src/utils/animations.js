@@ -1,6 +1,7 @@
 import { keyframes } from "@emotion/react";
 import { useSpring, animated } from "react-spring";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { Paper } from "@mui/material";
 
 /**
  * 預設動畫效果集合
@@ -127,6 +128,106 @@ export const useAnimation = (type = "fadeIn", options = {}) => {
 		startAnimation,
 		resetAnimation,
 		AnimatedComponent: animated.div,
+	};
+};
+
+/**
+ * 面板容器動畫 Hook
+ * @param {Object} options - 動畫選項
+ * @param {boolean} options.isVisible - 是否可見
+ * @param {any} options.deps - 觸發動畫的依賴項
+ * @param {number} options.duration - 動畫持續時間(毫秒)
+ * @returns {Object} 動畫相關屬性
+ */
+export const usePanelContainerAnimation = ({
+	isVisible = true,
+	deps = null,
+	duration = 1000, // 預設動畫時間
+} = {}) => {
+	// 追蹤是否需要播放動畫
+	const [shouldAnimate, setShouldAnimate] = useState(deps === null);
+
+	// 當依賴項改變時，觸發動畫
+	useEffect(() => {
+		if (deps !== null) {
+			setShouldAnimate(true);
+		}
+	}, [deps]);
+
+	// 計算動畫配置
+	const animationConfig = useMemo(
+		() => ({
+			// tension 和 friction 的值會影響動畫速度和彈性
+			// 較高的 tension 會使動畫更快
+			// 較高的 friction 會減少彈性
+			tension: Math.round(170000 / duration), // 根據持續時間調整張力
+			friction: Math.round(26000 / duration), // 根據持續時間調整摩擦力
+		}),
+		[duration]
+	);
+
+	const springProps = useSpring({
+		from: shouldAnimate
+			? {
+					clipPath: "circle(0% at center)",
+					opacity: 0,
+			  }
+			: {
+					clipPath: "inset(0 0 0 0)",
+					opacity: 1,
+			  },
+		to: async (next) => {
+			if (shouldAnimate && isVisible) {
+				// 第一階段：點變成小線
+				await next({
+					clipPath: "inset(49.5% 40% 49.5% 40%)", // 先變成一個小線段
+					opacity: 0.0,
+					immediate: true,
+				});
+
+				// 第二階段：小線變成長線
+				await next({
+					clipPath: "inset(49.5% 0% 49.5% 0%)", // 水平展開成完整的線
+					opacity: 1.0,
+					immediate: false,
+					config: animationConfig,
+				});
+
+				// 第三階段：線變成完整區塊
+				await next({
+					clipPath: "inset(0 0 0 0)", // 垂直展開
+					opacity: 1,
+					config: animationConfig,
+				});
+				// 重置動畫狀態
+				setShouldAnimate(false);
+			}
+		},
+		config: animationConfig,
+	});
+
+	/**
+	 * 創建記憶化的動畫容器組件
+	 */
+	const AnimatedContainer = useMemo(() => {
+		return animated(({ children, ...props }) => (
+			<Paper
+				elevation={0}
+				{...props}
+				style={{
+					...props.style,
+					position: "relative",
+					overflow: "hidden",
+				}}
+			>
+				{children}
+			</Paper>
+		));
+	}, []); // 空依賴陣列確保組件只創建一次
+
+	return {
+		style: springProps,
+		AnimatedContainer,
 	};
 };
 
