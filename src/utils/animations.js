@@ -1,7 +1,7 @@
 import { keyframes } from "@emotion/react";
 import { useSpring, animated } from "react-spring";
 import { useState, useEffect, useMemo, useRef } from "react";
-import { Paper } from "@mui/material";
+import { Paper, Box } from "@mui/material";
 
 /**
  * 預設動畫效果集合
@@ -218,7 +218,7 @@ export const usePanelContainerAnimation = ({
 	 */
 	const AnimatedContainer = useMemo(() => {
 		return animated(({ children, ...props }) => (
-			<Paper
+			<Box
 				elevation={0}
 				{...props}
 				style={{
@@ -228,7 +228,7 @@ export const usePanelContainerAnimation = ({
 				}}
 			>
 				{children}
-			</Paper>
+			</Box>
 		));
 	}, []); // 空依賴陣列確保組件只創建一次
 

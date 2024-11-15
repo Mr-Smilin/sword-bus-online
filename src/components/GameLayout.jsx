@@ -4,41 +4,30 @@
  */
 import React, { useState } from "react";
 import { Box } from "@mui/material";
-import { useModalPanel } from "../hooks/useModalPanel";
+import { useLayout } from "../contexts";
 import Login from "./login/Login";
 import AppHeader from "./layout/AppHeader";
-import NavigationDrawer from "./layout/NavigationDrawer";
+import AnimatedNavMenu from "./layout/AnimatedNavMenu";
 import MainContent from "./layout/MainContent";
 
 const GameLayout = ({ isDarkMode, onToggleTheme }) => {
-	const [isLoggedIn, setIsLoggedIn] = useState(false);
-	const { selectedPanel, isModalOpen, handlePanelChange, closeModal } =
-		useModalPanel("character");
-
-	if (!isLoggedIn) {
-		return (
-			<Login
-				onLogin={setIsLoggedIn}
-				isDarkMode={isDarkMode}
-				onToggleTheme={onToggleTheme}
-			/>
-		);
-	}
+	const {
+		layoutActions: { switchPanel },
+		currentPanel,
+		isModalOpen,
+	} = useLayout();
 
 	return (
 		<Box sx={{ display: "flex", height: "100vh" }}>
 			<AppHeader isDarkMode={isDarkMode} onToggleTheme={onToggleTheme} />
 
-			<NavigationDrawer
-				selectedPanel={selectedPanel}
-				onMenuClick={(item) => handlePanelChange(item.id, item.isModal)}
+			<AnimatedNavMenu
+				onMenuSelect={(itemId) => switchPanel(itemId)}
+				isDarkMode={isDarkMode}
+				onToggleTheme={onToggleTheme}
 			/>
 
-			<MainContent
-				selectedPanel={selectedPanel}
-				isModalOpen={isModalOpen}
-				onCloseModal={closeModal}
-			/>
+			<MainContent />
 		</Box>
 	);
 };

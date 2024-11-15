@@ -1,6 +1,6 @@
 /**
  * @file MainContent.jsx
- * @description 主要內容區域組件
+ * @description 主要內容區域組件，更新模態框邏輯
  */
 import React, { useMemo } from "react";
 import { Box, Paper, IconButton, Modal } from "@mui/material";
@@ -17,8 +17,14 @@ const PANEL_CONTENT = {
 	map: () => <div>地圖面板</div>,
 };
 
-const MainContent = ({ selectedPanel, isModalOpen, onCloseModal }) => {
-	const { currentDrawerWidth } = useLayout();
+const MainContent = () => {
+	const {
+		currentPanel,
+		isModalOpen,
+		mainContentStyles,
+		layoutActions: { closeModal },
+		isModalPanel,
+	} = useLayout();
 
 	// 動畫容器
 	const { style: emptyPanelStyle, AnimatedContainer: EmptyPanelContainer } =
@@ -29,7 +35,7 @@ const MainContent = ({ selectedPanel, isModalOpen, onCloseModal }) => {
 	} = usePanelContainerAnimation({});
 	const { style: mainPanelStyle, AnimatedContainer: MainPanelContainer } =
 		usePanelContainerAnimation({
-			deps: selectedPanel,
+			deps: currentPanel,
 		});
 
 	// 記憶化內容
@@ -37,36 +43,16 @@ const MainContent = ({ selectedPanel, isModalOpen, onCloseModal }) => {
 	const characterCardContent = useMemo(() => <CharacterCard />, []);
 	const currentPanelContent = useMemo(() => {
 		const PanelComponent =
-			PANEL_CONTENT[selectedPanel] || (() => <div>請選擇一個面板</div>);
+			PANEL_CONTENT[currentPanel] || (() => <div>請選擇一個面板</div>);
 		return <PanelComponent />;
-	}, [selectedPanel]);
+	}, [currentPanel]);
 
 	return (
-		<Box
-			component="main"
-			sx={{
-				flexGrow: 1,
-				p: 3,
-				mt: 8,
-				width: { md: `calc(100% - ${currentDrawerWidth}px)` },
-				transition: (theme) =>
-					theme.transitions.create("margin", {
-						easing: theme.transitions.easing.sharp,
-						duration: theme.transitions.duration.standard,
-					}),
-			}}
-		>
-			<Box
-				sx={{
-					display: "grid",
-					gap: 2,
-					gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-					gridTemplateRows: "auto",
-				}}
-			>
+		<Box component="main" sx={mainContentStyles.main}>
+			<Box sx={mainContentStyles.contentGrid}>
 				<EmptyPanelContainer
 					style={emptyPanelStyle}
-					sx={{ gridColumn: { xs: "1", sm: "1 / 2" } }}
+					sx={{ gridColumn: { xs: "1", sm: "1 / 2" }, minHeight: "200px" }}
 				>
 					{emptyPanelContent}
 				</EmptyPanelContainer>
@@ -78,7 +64,7 @@ const MainContent = ({ selectedPanel, isModalOpen, onCloseModal }) => {
 					{characterCardContent}
 				</CharacterCardContainer>
 
-				{!isModalOpen && (
+				{!isModalOpen && !isModalPanel(currentPanel) && (
 					<MainPanelContainer
 						style={mainPanelStyle}
 						sx={{
@@ -93,29 +79,22 @@ const MainContent = ({ selectedPanel, isModalOpen, onCloseModal }) => {
 			</Box>
 
 			<Modal
-				open={isModalOpen && selectedPanel === "map"}
-				onClose={onCloseModal}
-				sx={{
-					display: "flex",
-					alignItems: "center",
-					justifyContent: "center",
-				}}
+				open={isModalOpen && isModalPanel(currentPanel)}
+				onClose={closeModal}
+				sx={mainContentStyles.modal}
 			>
-				<Paper
-					sx={{
-						position: "relative",
-						width: "80%",
-						maxWidth: 800,
-						maxHeight: "80vh",
-						overflow: "auto",
-						p: 4,
-						outline: "none",
-					}}
-					onClick={(e) => e.stopPropagation()}
-				>
+				<Paper onClick={(e) => e.stopPropagation()}>
 					<IconButton
-						onClick={onCloseModal}
-						sx={{ position: "absolute", right: 8, top: 8 }}
+						onClick={closeModal}
+						sx={{
+							position: "absolute",
+							right: 8,
+							top: 8,
+							bgcolor: "background.paper",
+							"&:hover": {
+								bgcolor: "action.hover",
+							},
+						}}
 					>
 						<CloseIcon />
 					</IconButton>

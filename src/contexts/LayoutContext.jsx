@@ -1,74 +1,121 @@
 /**
  * @file LayoutContext.jsx
- * @description 管理應用布局的 Context
+ * @description 管理應用布局的 Context，添加地圖模態框處理
  */
 import React, { createContext, useContext, useState, useMemo } from "react";
 
-// 布局配置常量
-const DRAWER_CONFIG = {
-	collapsedWidth: 64,
-	expandedWidth: 240,
-};
-
 const LayoutContext = createContext(null);
+
+// 需要以模態框形式顯示的面板列表
+const MODAL_PANELS = ["map"];
 
 /**
  * 布局配置 Provider 組件
- * @param {Object} props
- * @param {React.ReactNode} props.children - 子組件
  */
 export const LayoutProvider = ({ children }) => {
-	// 抽屜相關狀態
-	const [mobileOpen, setMobileOpen] = useState(false);
-	const [isPinned, setIsPinned] = useState(false);
-	const [isDrawerExpanded, setIsDrawerExpanded] = useState(false);
+	// 布局相關狀態
+	const [isMobileView, setIsMobileView] = useState(false);
+	const [isMenuOpen, setIsMenuOpen] = useState(false);
+	const [currentPanel, setCurrentPanel] = useState("character");
+	const [isModalOpen, setIsModalOpen] = useState(false);
 
-	// 記憶化抽屜配置
-	const drawerConfig = useMemo(() => DRAWER_CONFIG, []);
-
-	// 計算當前抽屜寬度
-	const currentDrawerWidth = useMemo(
-		() =>
-			isDrawerExpanded
-				? drawerConfig.expandedWidth
-				: drawerConfig.collapsedWidth,
-		[isDrawerExpanded, drawerConfig]
-	);
-
-	// 記憶化抽屜操作方法
-	const drawerActions = useMemo(
+	// 記憶化布局操作方法
+	const layoutActions = useMemo(
 		() => ({
-			// 處理抽屜開關
-			handleDrawerToggle: () => setMobileOpen((prev) => !prev),
+			// 切換導航選單
+			toggleMenu: () => {
+				setIsMenuOpen((prev) => !prev);
+			},
 
-			// 處理抽屜展開狀態
-			handleDrawerExpand: (expanded) => {
-				if (!isPinned) {
-					setIsDrawerExpanded(expanded);
+			// 關閉導航選單
+			closeMenu: () => {
+				setIsMenuOpen(false);
+			},
+
+			// 切換面板
+			switchPanel: (panelId) => {
+				setCurrentPanel(panelId);
+				// 檢查是否為需要模態框顯示的面板
+				setIsModalOpen(MODAL_PANELS.includes(panelId));
+				// 在切換面板時自動關閉選單
+				if (isMobileView) {
+					setIsMenuOpen(false);
 				}
 			},
 
-			// 處理固定按鈕點擊
-			handlePinClick: () => {
-				setIsPinned((prev) => !prev);
-				if (!isPinned) {
-					setIsDrawerExpanded(true);
+			// 關閉模態框
+			closeModal: () => {
+				setIsModalOpen(false);
+				// 如果當前面板是模態框類型，切換回預設面板
+				if (MODAL_PANELS.includes(currentPanel)) {
+					setCurrentPanel("character");
+				}
+			},
+
+			// 設置移動設備視圖狀態
+			setMobileView: (isMobile) => {
+				setIsMobileView(isMobile);
+				if (isMobile) {
+					setIsMenuOpen(false);
 				}
 			},
 		}),
-		[isPinned]
+		[isMobileView, currentPanel]
+	);
+
+	// 記憶化主內容區域樣式配置
+	const mainContentStyles = useMemo(
+		() => ({
+			main: {
+				flexGrow: 1,
+				p: 3,
+				mt: 8,
+				transition: (theme) =>
+					theme.transitions.create(["margin", "width"], {
+						easing: theme.transitions.easing.sharp,
+						duration: theme.transitions.duration.standard,
+					}),
+			},
+			contentGrid: {
+				display: "grid",
+				gap: 2,
+				gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+				gridTemplateRows: "auto",
+				opacity: isMenuOpen ? 0.3 : 1,
+				transition: "opacity 0.3s ease-in-out",
+				filter: isMenuOpen ? "blur(2px)" : "none",
+			},
+			modal: {
+				display: "flex",
+				alignItems: "center",
+				justifyContent: "center",
+				"& .MuiPaper-root": {
+					position: "relative",
+					width: "90%",
+					maxWidth: 1200,
+					maxHeight: "90vh",
+					overflow: "auto",
+					p: 4,
+					outline: "none",
+					bgcolor: "background.paper",
+				},
+			},
+		}),
+		[isMenuOpen]
 	);
 
 	const value = {
 		// 狀態
-		mobileOpen,
-		isPinned,
-		isDrawerExpanded,
-		currentDrawerWidth,
-		// 配置
-		drawerConfig,
+		isMobileView,
+		isMenuOpen,
+		currentPanel,
+		isModalOpen,
+		// 樣式配置
+		mainContentStyles,
 		// 操作方法
-		drawerActions,
+		layoutActions,
+		// 工具方法
+		isModalPanel: (panelId) => MODAL_PANELS.includes(panelId),
 	};
 
 	return (
@@ -76,11 +123,6 @@ export const LayoutProvider = ({ children }) => {
 	);
 };
 
-/**
- * 使用布局 Context 的自定義 Hook
- * @returns {Object} 布局相關的狀態和方法
- * @throws {Error} 如果在 LayoutProvider 外使用會拋出錯誤
- */
 export const useLayout = () => {
 	const context = useContext(LayoutContext);
 	if (!context) {
