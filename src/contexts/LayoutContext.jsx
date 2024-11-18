@@ -86,18 +86,9 @@ export const LayoutProvider = ({ children }) => {
 				filter: isMenuOpen ? "blur(2px)" : "none",
 			},
 			modal: {
-				display: "flex",
-				alignItems: "center",
-				justifyContent: "center",
-				"& .MuiPaper-root": {
-					position: "relative",
-					width: "90%",
-					maxWidth: 1200,
-					maxHeight: "90vh",
-					overflow: "auto",
-					p: 4,
-					outline: "none",
-					bgcolor: "background.paper",
+				"& .MuiBackdrop-root": {
+					backgroundColor: "rgba(0, 0, 0, 0.8)",
+					backdropFilter: "blur(4px)",
 				},
 			},
 		}),

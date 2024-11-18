@@ -20,8 +20,8 @@ const PANEL_CONTENT = {
 const MainContent = () => {
 	const {
 		currentPanel,
-		isModalOpen,
 		mainContentStyles,
+		isModalOpen,
 		layoutActions: { closeModal },
 		isModalPanel,
 	} = useLayout();
@@ -37,6 +37,11 @@ const MainContent = () => {
 		usePanelContainerAnimation({
 			deps: currentPanel,
 		});
+	// 模態窗口的動畫
+	const { style: modalStyle, AnimatedContainer: ModalContainer } =
+		usePanelContainerAnimation({
+			deps: isModalOpen,
+		});
 
 	// 記憶化內容
 	const emptyPanelContent = useMemo(() => <Box />, []);
@@ -50,6 +55,7 @@ const MainContent = () => {
 	return (
 		<Box component="main" sx={mainContentStyles.main}>
 			<Box sx={mainContentStyles.contentGrid}>
+				{/* 空白面板 */}
 				<EmptyPanelContainer
 					style={emptyPanelStyle}
 					sx={{ gridColumn: { xs: "1", sm: "1 / 2" }, minHeight: "200px" }}
@@ -57,6 +63,7 @@ const MainContent = () => {
 					{emptyPanelContent}
 				</EmptyPanelContainer>
 
+				{/* 角色卡片 */}
 				<CharacterCardContainer
 					style={characterCardStyle}
 					sx={{ gridColumn: { xs: "1", sm: "2 / 3" } }}
@@ -64,7 +71,8 @@ const MainContent = () => {
 					{characterCardContent}
 				</CharacterCardContainer>
 
-				{!isModalOpen && !isModalPanel(currentPanel) && (
+				{/* 主要內容面板 - 只在非模態面板時顯示 */}
+				{!isModalPanel(currentPanel) && (
 					<MainPanelContainer
 						style={mainPanelStyle}
 						sx={{
@@ -78,28 +86,31 @@ const MainContent = () => {
 				)}
 			</Box>
 
+			{/* 模態窗口 */}
 			<Modal
 				open={isModalOpen && isModalPanel(currentPanel)}
 				onClose={closeModal}
 				sx={mainContentStyles.modal}
 			>
-				<Paper onClick={(e) => e.stopPropagation()}>
-					<IconButton
-						onClick={closeModal}
-						sx={{
-							position: "absolute",
-							right: 8,
-							top: 8,
-							bgcolor: "background.paper",
-							"&:hover": {
-								bgcolor: "action.hover",
-							},
-						}}
-					>
-						<CloseIcon />
-					</IconButton>
+				<ModalContainer
+					onClick={(e) => e.stopPropagation()}
+					style={modalStyle}
+					sx={{
+						position: "absolute",
+						top: "50%",
+						left: "50%",
+						transform: "translate(-50%, -50%)",
+						width: "90%",
+						maxWidth: 1200,
+						bgcolor: "background.paper",
+						boxShadow: 24,
+						p: 4,
+						maxHeight: "90vh",
+						overflow: "auto",
+					}}
+				>
 					{currentPanelContent}
-				</Paper>
+				</ModalContainer>
 			</Modal>
 		</Box>
 	);
