@@ -3,6 +3,7 @@ import {
 	Backpack as BackpackIcon,
 	AutoAwesome as SkillsIcon,
 	Map as MapIcon,
+	Help as HelpIcon,
 } from "@mui/icons-material";
 
 /**
@@ -13,6 +14,7 @@ export const menuItems = [
 	{ text: "背包道具", id: "inventory", icon: <BackpackIcon />, isModal: false },
 	{ text: "技能列表", id: "skills", icon: <SkillsIcon />, isModal: false },
 	{ text: "地圖", id: "map", icon: <MapIcon />, isModal: true },
+	{ text: "幫助", id: "help", icon: <HelpIcon />, isModal: true },
 ];
 
 /**

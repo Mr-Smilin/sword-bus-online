@@ -9,6 +9,7 @@ import { useLayout } from "../../contexts";
 import { usePanelContainerAnimation } from "../../utils/animations";
 import { CharacterCard, CharacterPanel } from "../character";
 import { MainView } from "../main-view";
+import HelpPanel from "../panels/HelpPanel";
 
 // 面板內容映射
 const PANEL_CONTENT = {
@@ -16,6 +17,7 @@ const PANEL_CONTENT = {
 	inventory: () => <div>背包道具內容面板</div>,
 	skills: () => <div>技能列表面板</div>,
 	map: () => <div>地圖面板</div>,
+	help: HelpPanel,
 };
 
 const MainContent = () => {
@@ -137,12 +139,51 @@ const MainContent = () => {
 						maxWidth: 1200,
 						bgcolor: "background.paper",
 						boxShadow: 24,
-						p: 4,
-						maxHeight: "90vh",
-						overflow: "auto",
+						// 調整視窗高度和內部間距
+						maxHeight: {
+							xs: "85vh", // 手機版稍微小一點
+							sm: "90vh", // 電腦版可以大一點
+						},
+						height: "auto", // 根據內容自適應高度
+						display: "flex",
+						flexDirection: "column",
+						// 圓角和邊框
+						borderRadius: 1,
+						border: 1,
+						borderColor: "divider",
+						// 內容區塊間距
+						p: {
+							xs: 2, // 手機版間距小一點
+							sm: 3, // 平板以上間距大一點
+							md: 4, // 電腦版間距更大
+						},
+						// 確保內容不會溢出
+						overflow: "hidden",
+						// 添加轉場效果
+						transition: (theme) =>
+							theme.transitions.create(["transform", "box-shadow"], {
+								duration: theme.transitions.duration.shortest,
+							}),
 					}}
 				>
-					{sidePanelContent}
+					{/* 根據不同面板可能需要不同的內容容器樣式 */}
+					<Box
+						sx={{
+							flexGrow: 1,
+							overflow: "auto", // 內容過長時可滾動
+							// 當內容可滾動時添加一些漸變效果
+							background: (theme) =>
+								`linear-gradient(${theme.palette.background.paper} 33%, rgba(255, 255, 255, 0)), linear-gradient(rgba(255, 255, 255, 0), ${theme.palette.background.paper} 66%) 0 100%, radial-gradient(farthest-side at 50% 0, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0)), radial-gradient(farthest-side at 50% 100%, rgba(0, 0, 0, 0.15), rgba(0, 0, 0, 0)) 0 100%`,
+							backgroundRepeat: "no-repeat",
+							backgroundSize: "100% 40px, 100% 40px, 100% 14px, 100% 14px",
+							backgroundAttachment: "local, local, scroll, scroll",
+							// 內容區域的間距
+							px: { xs: 2, sm: 3 },
+							py: 1,
+						}}
+					>
+						{sidePanelContent}
+					</Box>
 				</ModalContainer>
 			</Modal>
 		</Box>

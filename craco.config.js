@@ -24,6 +24,20 @@ module.exports = {
 					}),
 				],
 			};
+
+			// 添加 markdown 處理規則
+			webpackConfig.module.rules.push({
+				test: /\.md$/,
+				use: [
+					{
+						loader: "raw-loader",
+						options: {
+							esModule: false,
+						},
+					},
+				],
+			});
+
 			return webpackConfig;
 		},
 	},

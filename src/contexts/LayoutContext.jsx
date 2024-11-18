@@ -7,7 +7,7 @@ import React, { createContext, useContext, useState, useMemo } from "react";
 const LayoutContext = createContext(null);
 
 // 需要以模態框形式顯示的面板列表
-const MODAL_PANELS = ["map"];
+const MODAL_PANELS = ["map", "help"];
 
 /**
  * 布局配置 Provider 組件
