@@ -7,11 +7,11 @@ import {
     Skill,
     WeaponType,
     EffectType
-  }  from '../data/type';
+} from '../data/type';
 import { items } from '../data/item';
 import { weapons } from '../data/weapons';
 import { classes, classMap } from '../data/classes/';
-import { skills, skillsByClass ,skillMap } from '../data/skills/';
+import { skills, skillsByClass, skillMap } from '../data/skills/';
 
 /**
  * 角色裝備欄位類型定義
@@ -27,6 +27,40 @@ interface InventoryItem extends Item {
   quantity: number;
   slot: number;
 }
+
+/**
+ * 計算下一等級所需經驗值
+ * @param level 當前等級
+ * @returns 升級所需經驗值
+ */
+const calculateExpToNextLevel = (level: number): number => {
+  return Math.floor(100 * Math.pow(1.5, level - 1));
+};
+
+/**
+ * 計算角色成長屬性
+ * @param baseStats 基礎屬性
+ * @param growthStats 成長係數
+ * @param level 當前等級
+ * @returns 計算後的屬性值
+ */
+const calculateStatGrowth = (
+  baseStats: CharacterStats,
+  growthStats: Class['growthStats'],
+  level: number
+): CharacterStats => {
+  return {
+    ...baseStats,
+    level,
+    experience: baseStats.experience,
+    nextLevelExp: calculateExpToNextLevel(level),
+    health: Math.floor(baseStats.health + growthStats.health * (level - 1)),
+    mana: Math.floor(baseStats.mana + growthStats.mana * (level - 1)),
+    strength: Math.floor(baseStats.strength + growthStats.strength * (level - 1)),
+    dexterity: Math.floor(baseStats.dexterity + growthStats.dexterity * (level - 1)),
+    intelligence: Math.floor(baseStats.intelligence + growthStats.intelligence * (level - 1))
+  };
+};
 
 /**
  * 遊戲數據管理 Hook
@@ -65,6 +99,88 @@ export const useGameData = (initialClassId?: string) => {
       selectClass(initialClassId);
     }
   }, [initialClassId]);
+
+  /**
+   * 處理升級效果
+   * @param newLevel 新的等級
+   */
+  const handleLevelUp = useCallback((newLevel: number) => {
+    if (!currentClass) return;
+
+    // 檢查是否有新的職業進階獎勵
+    const levelProgression = currentClass.progression.find(
+      prog => prog.level === newLevel
+    );
+
+    if (levelProgression) {
+      // 解鎖新技能
+      levelProgression.unlockedSkills.forEach(skillId => {
+        // 未來可以添加技能解鎖的通知或動畫效果
+        console.log(`解鎖新技能: ${skillId}`);
+      });
+
+      // 添加屬性獎勵
+      setCharacterStats(prev => {
+        if (!prev || !levelProgression.attributeBonus) return prev;
+
+        return {
+          ...prev,
+          strength: prev.strength + (levelProgression.attributeBonus.strength || 0),
+          dexterity: prev.dexterity + (levelProgression.attributeBonus.dexterity || 0),
+          intelligence: prev.intelligence + (levelProgression.attributeBonus.intelligence || 0),
+          health: prev.health + (levelProgression.attributeBonus.health || 0),
+          mana: prev.mana + (levelProgression.attributeBonus.mana || 0),
+        };
+      });
+    }
+  }, [currentClass]);
+
+  /**
+   * 增加經驗值並處理升級
+   * @param amount 獲得的經驗值數量
+   */
+  const gainExperience = useCallback((amount: number): void => {
+    if (!characterStats || !currentClass) return;
+
+    setCharacterStats(prev => {
+      if (!prev || !currentClass) return prev;
+
+      let newExp = prev.experience + amount;
+      let newLevel = prev.level;
+      let newNextLevelExp = prev.nextLevelExp;
+
+      // 檢查是否升級
+      while (newExp >= newNextLevelExp) {
+        newExp -= newNextLevelExp;
+        newLevel++;
+        newNextLevelExp = calculateExpToNextLevel(newLevel);
+      }
+
+      // 計算新的屬性值
+      const newStats = calculateStatGrowth(
+        currentClass.baseStats,
+        currentClass.growthStats,
+        newLevel
+      );
+
+      // 如果升級了，處理等級提升效果
+      if (prev.level < newLevel) {
+        handleLevelUp(newLevel);
+      }
+
+      // 更新角色狀態
+      return {
+        ...prev,
+        ...newStats,
+        level: newLevel,
+        experience: newExp,
+        nextLevelExp: newNextLevelExp,
+        // 保留當前的生命值和魔力值，而不是使用基礎值
+        health: prev.health,
+        mana: prev.mana
+      };
+    });
+  }, [characterStats, currentClass, handleLevelUp]);
 
   /**
    * 選擇職業
@@ -299,6 +415,15 @@ export const useGameData = (initialClassId?: string) => {
     return endTime ? Date.now() < endTime : false;
   }, [activeEffects]);
 
+  /**
+   * 獲取當前經驗值百分比
+   * @returns 經驗值百分比
+   */
+  const getExpPercentage = useCallback((): number => {
+    if (!characterStats) return 0;
+    return (characterStats.experience / characterStats.nextLevelExp) * 100;
+  }, [characterStats]);
+
   return {
     // 狀態
     characterStats,
@@ -312,11 +437,13 @@ export const useGameData = (initialClassId?: string) => {
     addToInventory,
     equipWeapon,
     useSkill,
+    gainExperience,
 
     // 查詢方法
     getSkillCooldown,
     isEffectActive,
     canEquipWeapon,
+    getExpPercentage,
 
     // 遊戲數據
     classes: Object.values(classes),
@@ -325,6 +452,6 @@ export const useGameData = (initialClassId?: string) => {
 
     // 工具方法
     isClassSkillAvailable: (classId: string, skillId: string) => 
-      skillsByClass[classId]?.some(skill => skill.id === skillId) ?? false
+      skillsByClass[classId]?.some(skill => skill.id === skillId) ?? false,
   };
 };

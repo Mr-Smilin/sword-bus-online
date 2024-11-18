@@ -13,6 +13,7 @@ import {
 import { styled } from "@mui/material/styles";
 import { Heart, Brain, Swords, Wind, Star, Sword } from "lucide-react";
 import ProfessionTab from "./ProfessionTab";
+import { useGame } from "../../contexts/GameContext";
 
 /**
  * 狀態條元件
@@ -77,8 +78,12 @@ const StyledTab = styled(Tab)({
  * 角色卡片主組件
  */
 export const CharacterCard = () => {
+	// 獲取遊戲數據
+	const { characterStats, gainExperience, getExpPercentage } = useGame();
+
 	// Tab 切換狀態
 	const [tabValue, setTabValue] = useState(0);
+
 	// 動畫相關
 	const { style, AnimatedComponent } = useAnimation("fadeIn", {
 		config: { duration: 500 },
@@ -89,7 +94,10 @@ export const CharacterCard = () => {
 	const [currentMP, setCurrentMP] = useState(80);
 	const animatedHP = useNumberAnimation(currentHP);
 	const animatedMP = useNumberAnimation(currentMP);
-	const animatedExp = useNumberAnimation(75);
+
+	// 經驗值動畫
+	const animatedExp = useNumberAnimation(characterStats?.experience || 0);
+	const expPercentage = getExpPercentage();
 
 	// 模擬血量變化
 	const simulateHPChange = () => {
@@ -98,6 +106,11 @@ export const CharacterCard = () => {
 			Math.min(100, currentHP + (Math.random() > 0.5 ? 10 : -10))
 		);
 		setCurrentHP(newHP);
+	};
+
+	// 模擬獲得經驗值
+	const simulateExpGain = () => {
+		gainExperience(50); // 獲得50點經驗值
 	};
 
 	// Tab 切換處理
@@ -147,14 +160,16 @@ export const CharacterCard = () => {
 												sx={{ display: "flex", alignItems: "center", gap: 1 }}
 											>
 												<Star size={16} />
-												<Typography variant="body2">等級 15</Typography>
+												<Typography variant="body2">
+													等級 {characterStats?.level || 1}
+												</Typography>
 											</Box>
 										</Grid>
 										<Grid item xs={6}>
 											<Box>
 												<LinearProgress
 													variant="determinate"
-													value={animatedExp}
+													value={expPercentage}
 													sx={{
 														"& .MuiLinearProgress-bar": {
 															transition: "transform 0.8s ease-in-out",
@@ -162,7 +177,8 @@ export const CharacterCard = () => {
 													}}
 												/>
 												<Typography variant="caption" color="text.secondary">
-													經驗值: 7500 / 10000
+													經驗值: {characterStats?.experience || 0} /{" "}
+													{characterStats?.nextLevelExp || 100}
 												</Typography>
 											</Box>
 										</Grid>
@@ -204,7 +220,7 @@ export const CharacterCard = () => {
 									>
 										<Swords size={16} />
 										<Typography variant="body2" sx={{ ml: 1 }}>
-											力量: 15
+											力量: {characterStats?.strength || 0}
 										</Typography>
 									</Box>
 								</Grid>
@@ -221,7 +237,24 @@ export const CharacterCard = () => {
 									>
 										<Wind size={16} />
 										<Typography variant="body2" sx={{ ml: 1 }}>
-											敏捷: 12
+											敏捷: {characterStats?.dexterity || 0}
+										</Typography>
+									</Box>
+								</Grid>
+								<Grid item xs={6}>
+									<Box
+										sx={{
+											display: "flex",
+											alignItems: "center",
+											transition: "transform 0.2s ease-in-out",
+											"&:hover": {
+												transform: "translateX(5px)",
+											},
+										}}
+									>
+										<Brain size={16} />
+										<Typography variant="body2" sx={{ ml: 1 }}>
+											智力: {characterStats?.intelligence || 0}
 										</Typography>
 									</Box>
 								</Grid>
@@ -242,7 +275,7 @@ export const CharacterCard = () => {
 						>
 							<Button
 								variant="outlined"
-								onClick={simulateHPChange}
+								onClick={simulateExpGain} // 測試用：點擊武器欄位可以獲得經驗值
 								startIcon={<Sword size={20} />}
 								sx={{
 									width: "100%",
