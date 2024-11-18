@@ -1,6 +1,5 @@
 /**
- * @file AppHeader.jsx
- * @description 應用程式頂部導航欄，適配新的動畫導航選單
+ * @file components/layout/AppHeader.jsx
  */
 import React from "react";
 import {
@@ -10,20 +9,62 @@ import {
 	useMediaQuery,
 	useTheme,
 	Box,
+	Button,
 } from "@mui/material";
+import { Compass, Beaker } from "lucide-react"; // Flask 作為測試按鈕圖標
 import ThemeToggle from "../ThemeToggle";
 import { useLayout } from "../../contexts";
+import { styled } from "@mui/material/styles";
 
-/**
- * 應用程式頂部導航欄組件
- * @param {Object} props
- * @param {boolean} props.isDarkMode - 是否為深色模式
- * @param {Function} props.onToggleTheme - 切換主題的回調函數
- */
+// 自定義導航按鈕組件
+const NavButton = styled(Button)(({ theme, active }) => ({
+	position: "relative",
+	color: theme.palette.text.primary,
+	transition: "all 0.3s ease-in-out",
+	opacity: active ? 1 : 0.7,
+	"&:hover": {
+		opacity: 0.9,
+	},
+	// 底部指示條
+	"&::after": {
+		content: '""',
+		position: "absolute",
+		bottom: -2,
+		left: active ? 10 : "50%",
+		right: active ? 10 : "50%",
+		height: 2,
+		background: theme.palette.primary.main,
+		transition: "all 0.3s ease-in-out",
+		borderRadius: 1,
+	},
+	"&:hover::after": {
+		left: active ? 10 : 40,
+		right: active ? 10 : 40,
+	},
+}));
+
+// 導航按鈕配置
+const NAV_BUTTONS = [
+	{
+		id: "exploration",
+		label: "探索",
+		icon: <Compass size={20} />,
+	},
+	{
+		id: "test",
+		label: "測試",
+		icon: <Beaker size={20} />,
+	},
+];
+
 const AppHeader = ({ isDarkMode, onToggleTheme }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
-	const { isMenuOpen } = useLayout();
+	const {
+		isMenuOpen,
+		mainViewPanel,
+		layoutActions: { switchMainViewPanel },
+	} = useLayout();
 
 	return (
 		<AppBar
@@ -51,19 +92,39 @@ const AppHeader = ({ isDarkMode, onToggleTheme }) => {
 					px: { xs: 2, sm: 3 },
 				}}
 			>
-				<Box sx={{ flex: 1, display: "flex", alignItems: "center" }}>
+				<Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 2 }}>
 					<Typography
 						variant="h6"
 						noWrap
 						component="div"
 						sx={{
-							mr: 2,
 							opacity: isMenuOpen ? 0.7 : 1,
 							transition: theme.transitions.create("opacity"),
 						}}
 					>
 						Sword Art Offline
 					</Typography>
+
+					{/* 導航按鈕組 */}
+					<Box
+						sx={{
+							display: { xs: "none", sm: "flex" },
+							gap: 1,
+							ml: 2,
+							height: "100%",
+						}}
+					>
+						{NAV_BUTTONS.map((button) => (
+							<NavButton
+								key={button.id}
+								startIcon={button.icon}
+								onClick={() => switchMainViewPanel(button.id)}
+								active={mainViewPanel === button.id ? 1 : 0}
+							>
+								{button.label}
+							</NavButton>
+						))}
+					</Box>
 				</Box>
 
 				<Box
@@ -82,7 +143,6 @@ const AppHeader = ({ isDarkMode, onToggleTheme }) => {
 								transition: theme.transitions.create("opacity"),
 							}}
 						>
-							{/* 這裡可以添加用戶名稱或其他信息 */}
 							歡迎回來，冒險者
 						</Typography>
 					)}

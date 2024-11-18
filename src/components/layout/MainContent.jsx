@@ -1,6 +1,6 @@
 /**
  * @file MainContent.jsx
- * @description 主要內容區域組件，更新模態框邏輯
+ * @description 主要內容區域組件，包含主要畫面、角色資訊和側邊欄面板
  */
 import React, { useMemo } from "react";
 import { Box, Paper, IconButton, Modal } from "@mui/material";
@@ -8,6 +8,7 @@ import { Close as CloseIcon } from "@mui/icons-material";
 import { useLayout } from "../../contexts";
 import { usePanelContainerAnimation } from "../../utils/animations";
 import { CharacterCard, CharacterPanel } from "../character";
+import { MainView } from "../main-view";
 
 // 面板內容映射
 const PANEL_CONTENT = {
@@ -27,26 +28,25 @@ const MainContent = () => {
 	} = useLayout();
 
 	// 動畫容器
-	const { style: emptyPanelStyle, AnimatedContainer: EmptyPanelContainer } =
+	const { style: mainViewStyle, AnimatedContainer: MainViewContainer } =
 		usePanelContainerAnimation({});
 	const {
-		style: characterCardStyle,
-		AnimatedContainer: CharacterCardContainer,
+		style: characterInfoStyle,
+		AnimatedContainer: CharacterInfoContainer,
 	} = usePanelContainerAnimation({});
-	const { style: mainPanelStyle, AnimatedContainer: MainPanelContainer } =
+	const { style: sidePanelStyle, AnimatedContainer: SidePanelContainer } =
 		usePanelContainerAnimation({
 			deps: currentPanel,
 		});
-	// 模態窗口的動畫
 	const { style: modalStyle, AnimatedContainer: ModalContainer } =
 		usePanelContainerAnimation({
 			deps: isModalOpen,
 		});
 
 	// 記憶化內容
-	const emptyPanelContent = useMemo(() => <Box />, []);
-	const characterCardContent = useMemo(() => <CharacterCard />, []);
-	const currentPanelContent = useMemo(() => {
+	const mainViewContent = useMemo(() => <MainView />, []);
+	const characterInfoContent = useMemo(() => <CharacterCard />, []);
+	const sidePanelContent = useMemo(() => {
 		const PanelComponent =
 			PANEL_CONTENT[currentPanel] || (() => <div>請選擇一個面板</div>);
 		return <PanelComponent />;
@@ -55,34 +55,67 @@ const MainContent = () => {
 	return (
 		<Box component="main" sx={mainContentStyles.main}>
 			<Box sx={mainContentStyles.contentGrid}>
-				{/* 空白面板 */}
-				<EmptyPanelContainer
-					style={emptyPanelStyle}
-					sx={{ gridColumn: { xs: "1", sm: "1 / 2" }, minHeight: "200px" }}
+				{/* 主要畫面 */}
+				<MainViewContainer
+					style={mainViewStyle}
+					sx={{
+						gridColumn: {
+							xs: "1",
+							sm: "1 / 2",
+						},
+						gridRow: {
+							xs: "1",
+							sm: "1 / 3",
+						},
+						minHeight: {
+							xs: "300px",
+							sm: "600px",
+						},
+						bgcolor: "background.default",
+						border: 1,
+						borderColor: "divider",
+						borderRadius: 1,
+					}}
 				>
-					{emptyPanelContent}
-				</EmptyPanelContainer>
+					{mainViewContent}
+				</MainViewContainer>
 
-				{/* 角色卡片 */}
-				<CharacterCardContainer
-					style={characterCardStyle}
-					sx={{ gridColumn: { xs: "1", sm: "2 / 3" } }}
+				{/* 角色資訊/職業面板 */}
+				<CharacterInfoContainer
+					style={characterInfoStyle}
+					sx={{
+						gridColumn: {
+							xs: "1",
+							sm: "2 / 3",
+						},
+						gridRow: {
+							xs: "2",
+							sm: "1",
+						},
+					}}
 				>
-					{characterCardContent}
-				</CharacterCardContainer>
+					{characterInfoContent}
+				</CharacterInfoContainer>
 
-				{/* 主要內容面板 - 只在非模態面板時顯示 */}
+				{/* 側邊欄面板 */}
 				{!isModalPanel(currentPanel) && (
-					<MainPanelContainer
-						style={mainPanelStyle}
+					<SidePanelContainer
+						style={sidePanelStyle}
 						sx={{
-							gridColumn: { xs: "1", sm: "1 / 3" },
+							gridColumn: {
+								xs: "1",
+								sm: "2 / 3",
+							},
+							gridRow: {
+								xs: "3",
+								sm: "2",
+							},
 							minHeight: "200px",
-							bgcolor: (theme) => theme.palette.background.paper,
+							bgcolor: "background.paper",
 						}}
 					>
-						{currentPanelContent}
-					</MainPanelContainer>
+						{sidePanelContent}
+					</SidePanelContainer>
 				)}
 			</Box>
 
@@ -109,7 +142,7 @@ const MainContent = () => {
 						overflow: "auto",
 					}}
 				>
-					{currentPanelContent}
+					{sidePanelContent}
 				</ModalContainer>
 			</Modal>
 		</Box>

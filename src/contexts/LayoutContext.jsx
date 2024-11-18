@@ -18,6 +18,7 @@ export const LayoutProvider = ({ children }) => {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [currentPanel, setCurrentPanel] = useState("character");
 	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [mainViewPanel, setMainViewPanel] = useState("exploration");
 
 	// 記憶化布局操作方法
 	const layoutActions = useMemo(
@@ -59,6 +60,16 @@ export const LayoutProvider = ({ children }) => {
 					setIsMenuOpen(false);
 				}
 			},
+
+			// 切換主視圖面板
+			switchMainViewPanel: (panelId) => {
+				setMainViewPanel(panelId);
+			},
+
+			// 返回探索面板
+			backToExploration: () => {
+				setMainViewPanel("exploration");
+			},
 		}),
 		[isMobileView, currentPanel]
 	);
@@ -79,8 +90,14 @@ export const LayoutProvider = ({ children }) => {
 			contentGrid: {
 				display: "grid",
 				gap: 2,
-				gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
-				gridTemplateRows: "auto",
+				gridTemplateColumns: {
+					xs: "1fr", // 手機版單欄
+					sm: "2fr 1fr", // 電腦版探索區域占 2/3，資訊區域占 1/3
+				},
+				gridTemplateRows: {
+					xs: "auto auto auto", // 手機版垂直排列
+					sm: "auto auto", // 電腦版兩行
+				},
 				opacity: isMenuOpen ? 0.3 : 1,
 				transition: "opacity 0.3s ease-in-out",
 				filter: isMenuOpen ? "blur(2px)" : "none",
@@ -101,6 +118,7 @@ export const LayoutProvider = ({ children }) => {
 		isMenuOpen,
 		currentPanel,
 		isModalOpen,
+		mainViewPanel,
 		// 樣式配置
 		mainContentStyles,
 		// 操作方法
