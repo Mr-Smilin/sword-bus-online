@@ -1,156 +1,112 @@
 import React from "react";
-import { Paper, Typography, Box, Grid2 as Grid, Chip } from "@mui/material";
+import { Paper, Typography, Box, Grid } from "@mui/material";
 import {
-	Swords, // 攻擊力
-	Shield, // 防具
-	ScrollText, // 文字卷軸
-	Target, // 目標
-	Zap, // 閃電/狀態
+	CircleUser, // 角色圖標
+	Swords, // 力量圖標
+	Wind, // 敏捷圖標
+	Brain, // 智力圖標
+	Star, // 等級圖標
+	Heart, // 生命值圖標
 } from "lucide-react";
+import { useGame } from "../../contexts/GameContext";
+import { classes } from "../../data/classes";
+import { weapons } from "../../data/weapons";
 
 /**
- * 角色詳細資訊面板元件
+ * 屬性資訊組件
+ */
+const StatInfo = ({ icon: Icon, label, value }) => (
+	<Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 1 }}>
+		<Icon size={16} />
+		<Typography variant="body2">
+			{label}: {value}
+		</Typography>
+	</Box>
+);
+
+/**
+ * 角色資訊面板組件
  */
 export const CharacterPanel = () => {
+	const { player } = useGame();
+
+	if (!player) {
+		return (
+			<Paper sx={{ p: 3 }}>
+				<Typography>載入中...</Typography>
+			</Paper>
+		);
+	}
+
+	const { characterStats, currentClassId } = player;
+	const currentClass = classes[currentClassId];
+
 	return (
 		<Paper sx={{ p: 3 }}>
-			{/* 角色基本資訊 */}
+			{/* 基本資訊區 */}
 			<Box sx={{ mb: 3 }}>
-				<Typography variant="h5" gutterBottom>
-					角色資訊
-				</Typography>
-				<Grid container spacing={2}>
-					<Grid xs={12} sm={6}>
-						<Typography variant="subtitle1">名稱: 測試角色</Typography>
-					</Grid>
-					<Grid xs={12} sm={6}>
-						<Typography variant="subtitle1">職業: 戰士</Typography>
-					</Grid>
-				</Grid>
-			</Box>
-
-			<Box
-				sx={{
-					width: "100%",
-					height: "1px",
-					bgcolor: "divider",
-					my: 2,
-				}}
-			/>
-
-			{/* 詳細屬性 */}
-			<Box sx={{ mb: 3 }}>
-				<Typography variant="h6" gutterBottom>
-					詳細屬性
-				</Typography>
-				<Grid container spacing={3}>
-					{/* 基礎屬性 */}
-					<Grid xs={12} md={6}>
-						<Box sx={{ mb: 2 }}>
-							<Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-								<ScrollText size={20} />
-								<Typography variant="subtitle1" sx={{ ml: 1 }}>
-									基礎屬性
-								</Typography>
-							</Box>
-							<Box sx={{ pl: 3 }}>
-								<Typography variant="body2" gutterBottom>
-									力量: 15 (+2)
-								</Typography>
-								<Typography variant="body2" gutterBottom>
-									敏捷: 12 (+1)
-								</Typography>
-								<Typography variant="body2" gutterBottom>
-									智力: 8 (+0)
-								</Typography>
-							</Box>
-						</Box>
-					</Grid>
-
-					{/* 戰鬥屬性 */}
-					<Grid xs={12} md={6}>
-						<Box sx={{ mb: 2 }}>
-							<Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-								<Swords size={20} />
-								<Typography variant="subtitle1" sx={{ ml: 1 }}>
-									戰鬥屬性
-								</Typography>
-							</Box>
-							<Box sx={{ pl: 3 }}>
-								<Typography variant="body2" gutterBottom>
-									物理攻擊: 150-180
-								</Typography>
-								<Typography variant="body2" gutterBottom>
-									魔法攻擊: 50-65
-								</Typography>
-							</Box>
-						</Box>
-					</Grid>
-
-					{/* 防禦屬性 */}
-					<Grid xs={12} md={6}>
-						<Box sx={{ mb: 2 }}>
-							<Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-								<Shield size={20} />
-								<Typography variant="subtitle1" sx={{ ml: 1 }}>
-									防禦屬性
-								</Typography>
-							</Box>
-							<Box sx={{ pl: 3 }}>
-								<Typography variant="body2" gutterBottom>
-									物理防禦: 120
-								</Typography>
-								<Typography variant="body2" gutterBottom>
-									魔法防禦: 80
-								</Typography>
-							</Box>
-						</Box>
-					</Grid>
-
-					{/* 特殊屬性 */}
-					<Grid xs={12} md={6}>
-						<Box>
-							<Box sx={{ display: "flex", alignItems: "center", mb: 1 }}>
-								<Target size={20} />
-								<Typography variant="subtitle1" sx={{ ml: 1 }}>
-									特殊屬性
-								</Typography>
-							</Box>
-							<Box sx={{ pl: 3 }}>
-								<Typography variant="body2" gutterBottom>
-									暴擊率: 15%
-								</Typography>
-								<Typography variant="body2" gutterBottom>
-									暴擊傷害: 150%
-								</Typography>
-							</Box>
-						</Box>
-					</Grid>
-				</Grid>
-			</Box>
-
-			<Box
-				sx={{
-					width: "100%",
-					height: "1px",
-					bgcolor: "divider",
-					my: 2,
-				}}
-			/>
-
-			{/* 狀態效果 */}
-			<Box>
 				<Box sx={{ display: "flex", alignItems: "center", mb: 2 }}>
-					<Zap size={20} />
+					<CircleUser size={24} />
 					<Typography variant="h6" sx={{ ml: 1 }}>
-						狀態效果
+						基本資訊
 					</Typography>
 				</Box>
-				<Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-					<Chip label="力量增加 10%" color="primary" />
-					<Chip label="防禦增加 5%" color="success" />
+				<Grid container spacing={2}>
+					<Grid item xs={12} sm={6}>
+						<Typography variant="body1">名稱：{player.name}</Typography>
+					</Grid>
+					<Grid item xs={12} sm={6}>
+						<Typography variant="body1">職業：{currentClass.name}</Typography>
+					</Grid>
+				</Grid>
+			</Box>
+
+			{/* 等級資訊區 */}
+			<Box sx={{ mb: 3 }}>
+				<StatInfo icon={Star} label="等級" value={characterStats.level} />
+				<Box sx={{ pl: 3 }}>
+					<Typography variant="body2" color="text.secondary">
+						經驗值：{characterStats.experience} / {characterStats.nextLevelExp}
+					</Typography>
 				</Box>
 			</Box>
+
+			{/* 基礎屬性區 */}
+			<Box sx={{ mb: 3 }}>
+				<Typography variant="subtitle2" gutterBottom>
+					基礎屬性
+				</Typography>
+				<Box sx={{ pl: 1 }}>
+					<StatInfo icon={Heart} label="生命值" value={characterStats.health} />
+					<StatInfo icon={Brain} label="魔力值" value={characterStats.mana} />
+					<StatInfo
+						icon={Swords}
+						label="力量"
+						value={characterStats.strength}
+					/>
+					<StatInfo icon={Wind} label="敏捷" value={characterStats.dexterity} />
+					<StatInfo
+						icon={Brain}
+						label="智力"
+						value={characterStats.intelligence}
+					/>
+				</Box>
+			</Box>
+
+			{/* 裝備資訊區 */}
+			{player.equipped?.weapon && (
+				<Box>
+					<Typography variant="subtitle2" gutterBottom>
+						裝備武器
+					</Typography>
+					<Typography variant="body2">
+						{weapons.find((w) => w.id === player.equipped.weapon)?.name ||
+							"未知武器"}
+					</Typography>
+				</Box>
+			)}
 		</Paper>
 	);
 };
+
+export default CharacterPanel;

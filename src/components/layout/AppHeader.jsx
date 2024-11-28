@@ -14,6 +14,7 @@ import {
 import { Compass, Beaker } from "lucide-react"; // Flask 作為測試按鈕圖標
 import ThemeToggle from "../ThemeToggle";
 import { useLayout } from "../../contexts";
+import { useGame } from "../../contexts/GameContext";
 import { styled } from "@mui/material/styles";
 
 // 自定義導航按鈕組件
@@ -60,6 +61,7 @@ const NAV_BUTTONS = [
 const AppHeader = ({ isDarkMode, onToggleTheme }) => {
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+	const { player } = useGame();
 	const {
 		isMenuOpen,
 		mainViewPanel,
@@ -143,7 +145,7 @@ const AppHeader = ({ isDarkMode, onToggleTheme }) => {
 								transition: theme.transitions.create("opacity"),
 							}}
 						>
-							歡迎回來，冒險者
+							歡迎回來，{player?.name || "冒險者"}
 						</Typography>
 					)}
 

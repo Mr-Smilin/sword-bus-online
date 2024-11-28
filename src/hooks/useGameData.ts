@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { 
     CharacterStats, 
+    PlayerData,
     Item, 
     Weapon, 
     Class, 
@@ -66,15 +67,19 @@ const calculateStatGrowth = (
  * 遊戲數據管理 Hook
  * 管理角色狀態、物品、裝備和技能等遊戲核心數據
  * 
- * @param initialClassId - 初始職業ID（可選）
+ * @param playerData - 玩家資料
  * @returns 遊戲數據和操作方法
  */
-export const useGameData = (initialClassId?: string) => {
+export const useGameData = (playerData?: PlayerData) => {
   // 角色基礎狀態
-  const [characterStats, setCharacterStats] = useState<CharacterStats | null>(null);
+  const [characterStats, setCharacterStats] = useState<CharacterStats | null>(
+    playerData?.characterStats || null
+  );
   
   // 當前職業資訊
-  const [currentClass, setCurrentClass] = useState<Class | null>(null);
+  const [currentClass, setCurrentClass] = useState<Class | null>(
+    playerData?.currentClassId ? classes[playerData.currentClassId] : null
+  );
   
   // 背包系統 - 使用 slot 來管理物品位置
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
@@ -89,16 +94,6 @@ export const useGameData = (initialClassId?: string) => {
 
   // 角色效果系統 - 記錄每個效果的結束時間
   const [activeEffects, setActiveEffects] = useState<Record<EffectType, number>>({} as Record<EffectType, number>);
-
-  /**
-   * 初始化角色
-   * 如果提供了初始職業ID，則自動選擇該職業
-   */
-  useEffect(() => {
-    if (initialClassId) {
-      selectClass(initialClassId);
-    }
-  }, [initialClassId]);
 
   /**
    * 處理升級效果
@@ -181,6 +176,15 @@ export const useGameData = (initialClassId?: string) => {
       };
     });
   }, [characterStats, currentClass, handleLevelUp]);
+
+  
+  /**
+   * 初始化玩家資料
+   */
+  const initializePlayerData = (playerData: PlayerData) => {
+    setCharacterStats(playerData.characterStats);
+    setCurrentClass(classes[playerData.currentClassId]);
+  };
 
   /**
    * 選擇職業
@@ -433,6 +437,7 @@ export const useGameData = (initialClassId?: string) => {
     activeEffects,
 
     // 操作方法
+    initializePlayerData,
     selectClass,
     addToInventory,
     equipWeapon,

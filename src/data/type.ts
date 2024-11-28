@@ -15,6 +15,43 @@ export interface CharacterStats {
 }
 
 /**
+ * 玩家資料介面
+ */
+export interface PlayerData {
+  id: string;                    // 玩家唯一ID
+  name: string;                  // 玩家名稱
+  characterStats: CharacterStats;// 角色屬性
+  currentClassId: string;        // 當前職業ID
+  inventory: string[];           // 背包物品ID列表
+  equipped: {                    // 已裝備物品
+    weapon?: string;            // 武器ID
+  };
+  createdAt: number;            // 創建時間
+  lastLoginAt: number;          // 最後登入時間
+}
+
+/**
+ * 遊戲事件相關型別
+ */
+export interface GameEventData {
+  name: string;           // 玩家輸入的名稱
+  classId: string;        // 選擇的職業ID
+  isCompleted: boolean;   // 是否完成
+}
+
+/**
+ * 本地儲存的遊戲資料結構
+ */
+export interface GameSaveData {
+  player: PlayerData;           // 玩家資料
+  events: {                     // 事件資料
+    tutorial?: GameEventData;   // 新手教學
+    [key: string]: any;        // 其他事件
+  };
+  version: string;             // 存檔版本
+}
+
+/**
  * 物品類型
  * 定義遊戲中所有可能的物品類型
  */
