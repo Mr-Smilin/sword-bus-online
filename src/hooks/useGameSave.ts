@@ -115,6 +115,10 @@ export const useGameSave = () => {
         },
         inventory: [],
         equipped: {},
+        locationData: {
+          currentFloorId: 1,
+          currentAreaId: 'f1-town'
+        },
         createdAt: Date.now(),
         lastLoginAt: Date.now()
       },

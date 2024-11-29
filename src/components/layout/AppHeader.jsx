@@ -71,6 +71,7 @@ const AppHeader = ({ isDarkMode, onToggleTheme }) => {
 	return (
 		<AppBar
 			position="fixed"
+			data-navbar-area
 			elevation={isMenuOpen ? 0 : 4}
 			sx={{
 				width: "100%",

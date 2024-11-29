@@ -26,6 +26,10 @@ export interface PlayerData {
   equipped: {                    // 已裝備物品
     weapon?: string;            // 武器ID
   };
+  locationData: {
+    currentFloorId: number;     // 樓層ID
+    currentAreaId: string;      // 區域ID
+  };
   createdAt: number;            // 創建時間
   lastLoginAt: number;          // 最後登入時間
 }
@@ -294,4 +298,52 @@ export interface Skill {
     level: number;         // 等級要求
     weapon?: WeaponType[]; // 武器要求
   };
+}
+
+// 區域類型定義
+export type AreaType = 'town' | 'wild' | 'dungeon';
+
+// 座標位置
+export interface Position {
+  x: number;
+  y: number;
+}
+
+// 區域資訊
+export interface Area {
+  id: string;                    // 區域識別碼 例如: "1f-town"
+  name: string;                  // 區域名稱
+  type: AreaType;               // 區域類型
+  position: Position;           // 區域在地圖上的位置
+  description: string;          // 區域描述
+  connections: string[];        // 可直接到達的區域ID
+  requiredExploration?: number; // 需要的最大探索度 (解鎖條件)
+  maxExploration: number;       // 最大探索度上限
+  maxDungeonExploration?: number; // 迷宮專屬: 地域探索度上限
+}
+
+// 樓層資訊
+export interface Floor {
+  id: number;                 // 樓層編號
+  name: string;              // 樓層名稱
+  description: string;       // 樓層描述
+  requiredBoss?: string;     // 需要擊敗的BOSS ID (解鎖下一層條件)
+  areas: Area[];            // 該樓層的所有區域
+  backgroundImage?: string;  // 樓層地圖背景圖片
+}
+
+// 探索進度
+export interface AreaProgress {
+  currentExploration: number;  // 當前探索度
+  maxExploration: number;      // 已達到的最大探索度
+  dungeonExploration?: number; // 迷宮專屬: 當前地域探索度
+}
+
+// 地圖存檔資料
+export interface MapSaveData {
+  currentFloor: number;           // 當前樓層
+  currentArea: string;           // 當前區域ID
+  areaProgress: Record<string, AreaProgress>;  // 各區域探索進度
+  unlockedAreas: string[];      // 已解鎖的區域ID
+  defeatedBosses: string[];     // 已擊敗的BOSS ID
 }

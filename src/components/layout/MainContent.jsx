@@ -7,16 +7,19 @@ import { Box, Paper, IconButton, Modal } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { useLayout } from "../../contexts";
 import { usePanelContainerAnimation } from "../../utils/animations";
+import { useMap } from "../../contexts/MapContext";
 import { CharacterCard, CharacterPanel } from "../character";
 import { MainView } from "../main-view";
 import HelpPanel from "../panels/HelpPanel";
+import MapPanel from "../panels/MapPanel";
+import TravelProgress from "../map/TravelProgress";
 
 // 面板內容映射
 const PANEL_CONTENT = {
 	character: CharacterPanel,
 	inventory: () => <div>背包道具內容面板</div>,
 	skills: () => <div>技能列表面板</div>,
-	map: () => <div>地圖面板</div>,
+	map: MapPanel,
 	help: HelpPanel,
 };
 
@@ -28,6 +31,7 @@ const MainContent = () => {
 		layoutActions: { closeModal },
 		isModalPanel,
 	} = useLayout();
+	const { isMoving, travelInfo, moveProgress } = useMap();
 
 	// 動畫容器
 	const { style: mainViewStyle, AnimatedContainer: MainViewContainer } =
@@ -56,6 +60,17 @@ const MainContent = () => {
 
 	return (
 		<Box component="main" sx={mainContentStyles.main}>
+			{/* 進度條 */}
+			{isMoving && (
+				<TravelProgress
+					progress={moveProgress}
+					fromArea={travelInfo.fromArea}
+					toArea={travelInfo.toArea}
+					estimatedTime={travelInfo.estimatedTime}
+					isMoving={isMoving}
+				/>
+			)}
+
 			<Box sx={mainContentStyles.contentGrid}>
 				{/* 主要畫面 */}
 				<MainViewContainer

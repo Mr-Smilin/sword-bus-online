@@ -1,6 +1,13 @@
-import React, { createContext, useContext } from "react";
+import React, {
+	createContext,
+	useContext,
+	useState,
+	useCallback,
+	useEffect,
+} from "react";
 import { useGameSave } from "../hooks/useGameSave";
 import { useGameData } from "../hooks/useGameData";
+import { MapProvider } from "./MapContext";
 import TutorialModal from "../components/tutorial/TutorialModal";
 
 const GameContext = createContext(null);
@@ -26,19 +33,68 @@ export const GameProvider = ({ children }) => {
 		gameData.initializePlayerData(newSave.player);
 	};
 
-	// 如果正在載入，可以顯示載入畫面
-	if (isLoading) {
-		return <div>Loading...</div>;
-	}
+	// 初始化探索進度
+	const [areaProgress, setAreaProgress] = useState(() => {
+		// 如果有存檔就用存檔的資料，否則建立初始資料
+		return (
+			saveData?.areaProgress || {
+				"f1-town": { currentExploration: 0, maxExploration: 0 },
+				"f1-wild-east": { currentExploration: 0, maxExploration: 0 },
+				"f1-wild-west": { currentExploration: 0, maxExploration: 0 },
+				"f1-dungeon": { currentExploration: 0, maxExploration: 0 },
+				// 其他區域的初始進度...
+			}
+		);
+	});
+
+	// 更新探索進度的方法
+	const updateAreaProgress = useCallback((areaId, progress) => {
+		setAreaProgress((prev) => ({
+			...prev,
+			[areaId]: progress,
+		}));
+	}, []);
+
+	// 位置相關的資料存檔結構
+	const [locationData, setLocationData] = useState({
+		currentFloorId: 1,
+		currentAreaId: "f1-town",
+	});
+
+	useEffect(() => {
+		console.log(saveData?.player?.locationData);
+		if (saveData?.player?.locationData) {
+			setLocationData(saveData.player.locationData);
+		}
+	}, [saveData]);
+
+	// 更新位置的方法
+	const updateLocationData = useCallback(
+		(newLocationData) => {
+			setLocationData((prevData) => {
+				const updatedData = { ...prevData, ...newLocationData };
+				// 更新存檔
+				updatePlayerData({
+					locationData: updatedData,
+				});
+				return updatedData;
+			});
+		},
+		[updatePlayerData]
+	);
 
 	// 提供 context 值
 	const contextValue = {
 		player: saveData?.player || null,
 		isNewPlayer: !saveData,
 		eventData: saveData?.events || {},
-		...gameData,
+		areaProgress,
+		locationData,
 		updatePlayerData,
 		updateEventData,
+		updateAreaProgress,
+		updateLocationData,
+		...gameData,
 	};
 
 	return (
@@ -46,7 +102,7 @@ export const GameProvider = ({ children }) => {
 			{!saveData ? (
 				<TutorialModal onComplete={handleTutorialComplete} />
 			) : (
-				children
+				<MapProvider>{children}</MapProvider>
 			)}
 		</GameContext.Provider>
 	);
