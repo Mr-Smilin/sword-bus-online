@@ -10,7 +10,7 @@ const customColors = {
 		main: "#1976d2", // 主要色彩
 		light: "#42a5f5", // 較淺版本
 		dark: "#1565c0", // 較深版本
-		contrastText: "#fff", // 文字顏色
+		contrastText: "#333", // 文字顏色
 	},
 	// 成功色調（用於選中狀態）
 	success: {
