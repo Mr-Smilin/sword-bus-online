@@ -56,19 +56,11 @@ export const CharacterPanel = () => {
 						<Typography variant="body1">名稱：{player.name}</Typography>
 					</Grid>
 					<Grid item xs={12} sm={6}>
-						<Typography variant="body1">職業：{currentClass.name}</Typography>
+						<Typography variant="body1">
+							職業：{currentClass.name} (Lv.{characterStats.level})
+						</Typography>
 					</Grid>
 				</Grid>
-			</Box>
-
-			{/* 等級資訊區 */}
-			<Box sx={{ mb: 3 }}>
-				<StatInfo icon={Star} label="等級" value={characterStats.level} />
-				<Box sx={{ pl: 3 }}>
-					<Typography variant="body2" color="text.secondary">
-						經驗值：{characterStats.experience} / {characterStats.nextLevelExp}
-					</Typography>
-				</Box>
 			</Box>
 
 			{/* 基礎屬性區 */}

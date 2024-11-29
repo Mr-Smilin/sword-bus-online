@@ -82,8 +82,6 @@ const SkillSection = ({ title, skills, learnedSkills }) => {
 const ProfessionTab = () => {
 	const { currentClass, skillsByClass } = useGame();
 
-	console.log("職業:", currentClass);
-
 	// 如果沒有職業資料，顯示提示訊息
 	if (!currentClass) {
 		return (

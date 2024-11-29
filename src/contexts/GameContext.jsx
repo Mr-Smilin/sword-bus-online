@@ -62,7 +62,6 @@ export const GameProvider = ({ children }) => {
 	});
 
 	useEffect(() => {
-		console.log(saveData?.player?.locationData);
 		if (saveData?.player?.locationData) {
 			setLocationData(saveData.player.locationData);
 		}

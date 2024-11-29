@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useAnimation, useNumberAnimation } from "../../utils/animations";
 import {
 	Paper,
@@ -79,7 +79,9 @@ const StyledTab = styled(Tab)({
  */
 export const CharacterCard = () => {
 	// 獲取遊戲數據
-	const { characterStats, gainExperience, getExpPercentage } = useGame();
+	const { player, gainExperience, getExpPercentage } = useGame();
+
+	const { characterStats, currentClassId } = player;
 
 	// Tab 切換狀態
 	const [tabValue, setTabValue] = useState(0);
@@ -96,17 +98,10 @@ export const CharacterCard = () => {
 	const animatedMP = useNumberAnimation(currentMP);
 
 	// 經驗值動畫
-	const animatedExp = useNumberAnimation(characterStats?.experience || 0);
+	const [exp, setExp] = useState(0);
+	const [nextLevelExp, setNextLevelExp] = useState(100);
+	const animatedExp = useNumberAnimation(exp);
 	const expPercentage = getExpPercentage();
-
-	// 模擬血量變化
-	const simulateHPChange = () => {
-		const newHP = Math.max(
-			0,
-			Math.min(100, currentHP + (Math.random() > 0.5 ? 10 : -10))
-		);
-		setCurrentHP(newHP);
-	};
 
 	// 模擬獲得經驗值
 	const simulateExpGain = () => {
@@ -117,6 +112,22 @@ export const CharacterCard = () => {
 	const handleTabChange = (event, newValue) => {
 		setTabValue(newValue);
 	};
+
+	// 更新狀態
+	useEffect(() => {
+		setCurrentHP(characterStats?.health);
+		setCurrentMP(characterStats?.mana);
+		setExp(characterStats?.experience);
+		setNextLevelExp(characterStats?.nextLevelExp);
+	}, [characterStats]);
+
+	if (!player) {
+		return (
+			<Paper sx={{ p: 3 }}>
+				<Typography>載入中...</Typography>
+			</Paper>
+		);
+	}
 
 	return (
 		<AnimatedComponent style={style}>
@@ -177,8 +188,7 @@ export const CharacterCard = () => {
 													}}
 												/>
 												<Typography variant="caption" color="text.secondary">
-													經驗值: {characterStats?.experience || 0} /{" "}
-													{characterStats?.nextLevelExp || 100}
+													經驗值: {animatedExp} / {nextLevelExp}
 												</Typography>
 											</Box>
 										</Grid>
@@ -202,61 +212,8 @@ export const CharacterCard = () => {
 										icon={Brain}
 										label="魔力值"
 										value={animatedMP}
-										maxValue={80}
+										maxValue={100}
 									/>
-								</Grid>
-
-								{/* 基礎屬性值 */}
-								<Grid item xs={6}>
-									<Box
-										sx={{
-											display: "flex",
-											alignItems: "center",
-											transition: "transform 0.2s ease-in-out",
-											"&:hover": {
-												transform: "translateX(5px)",
-											},
-										}}
-									>
-										<Swords size={16} />
-										<Typography variant="body2" sx={{ ml: 1 }}>
-											力量: {characterStats?.strength || 0}
-										</Typography>
-									</Box>
-								</Grid>
-								<Grid item xs={6}>
-									<Box
-										sx={{
-											display: "flex",
-											alignItems: "center",
-											transition: "transform 0.2s ease-in-out",
-											"&:hover": {
-												transform: "translateX(5px)",
-											},
-										}}
-									>
-										<Wind size={16} />
-										<Typography variant="body2" sx={{ ml: 1 }}>
-											敏捷: {characterStats?.dexterity || 0}
-										</Typography>
-									</Box>
-								</Grid>
-								<Grid item xs={6}>
-									<Box
-										sx={{
-											display: "flex",
-											alignItems: "center",
-											transition: "transform 0.2s ease-in-out",
-											"&:hover": {
-												transform: "translateX(5px)",
-											},
-										}}
-									>
-										<Brain size={16} />
-										<Typography variant="body2" sx={{ ml: 1 }}>
-											智力: {characterStats?.intelligence || 0}
-										</Typography>
-									</Box>
 								</Grid>
 							</Grid>
 						</Box>
