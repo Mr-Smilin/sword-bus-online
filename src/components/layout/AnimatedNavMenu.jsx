@@ -99,7 +99,7 @@ const MenuItemContainer = styled("div")({
 });
 
 // 選單項目按鈕
-const MenuItemButton = styled("button")(({ theme, isOpen }) => ({
+const MenuItemButton = styled("button")(({ theme }) => ({
 	display: "flex",
 	alignItems: "center",
 	justifyContent: "center",
@@ -111,7 +111,10 @@ const MenuItemButton = styled("button")(({ theme, isOpen }) => ({
 	backgroundColor: "#e6e6e6",
 	cursor: "pointer",
 	position: "relative",
-	pointerEvents: isOpen ? "auto" : "none",
+	pointerEvents: "none",
+	".show &": {
+		pointerEvents: "auto",
+	},
 	"&::before": {
 		content: '""',
 		position: "absolute",
@@ -230,14 +233,13 @@ const AnimatedNavMenu = ({ onMenuSelect, isDarkMode, onToggleTheme }) => {
 				<div className="button-text">{isOpen ? "CLOSE" : "MENU"}</div>
 			</MenuButton>
 
-			<NavMenu>
+			<NavMenu className={isOpen ? "show" : ""}>
 				<ul>
 					{menuItems.map((item, index) => (
 						<MenuItem key={item.id} index={index} show={isOpen}>
 							<MenuItemContainer>
 								{item.isThemeToggle ? (
 									<ThemeToggleButton
-										isOpen={isOpen}
 										onClick={(e) => {
 											e.preventDefault();
 											onToggleTheme(e);
@@ -250,7 +252,6 @@ const AnimatedNavMenu = ({ onMenuSelect, isDarkMode, onToggleTheme }) => {
 									</ThemeToggleButton>
 								) : (
 									<MenuItemButton
-										isOpen={isOpen}
 										onClick={() => handleMenuClick(item.id)}
 										aria-label={item.text}
 									>
