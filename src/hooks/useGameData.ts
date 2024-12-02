@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useCallback, useState,useEffect } from 'react';
 import { 
     CharacterStats, 
     PlayerData,
@@ -65,23 +65,18 @@ const calculateStatGrowth = (
 
 /**
  * 遊戲數據管理 Hook
- * 管理角色狀態、物品、裝備和技能等遊戲核心數據
- * 
- * @param playerData - 玩家資料
+ * @param playerData 玩家資料
+ * @param onStatsChange 角色屬性更新回調
  * @returns 遊戲數據和操作方法
  */
-export const useGameData = (playerData?: PlayerData) => {
-  // 角色基礎狀態
-  const [characterStats, setCharacterStats] = useState<CharacterStats | null>(
-    playerData?.characterStats || null
-  );
-  
+export const useGameData = (
+  playerData?: PlayerData,
+  onStatsChange?: (newStats: CharacterStats) => void
+) => {
   // 當前職業資訊
-  const [currentClass, setCurrentClass] = useState<Class | null>(
-    playerData?.currentClassId ? classes[playerData.currentClassId] : null
-  );
+  const [currentClass, setCurrentClass] = useState<Class | null>(null);
   
-  // 背包系統 - 使用 slot 來管理物品位置
+  // 背包系統
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   
   // 裝備系統
@@ -89,60 +84,56 @@ export const useGameData = (playerData?: PlayerData) => {
     weapon: null
   });
 
-  // 技能冷卻系統 - 記錄每個技能的冷卻結束時間
+  // 技能冷卻系統
   const [skillCooldowns, setSkillCooldowns] = useState<Record<string, number>>({});
 
-  // 角色效果系統 - 記錄每個效果的結束時間
+  // 角色效果系統
   const [activeEffects, setActiveEffects] = useState<Record<EffectType, number>>({} as Record<EffectType, number>);
 
   /**
-   * 處理升級效果
-   * @param newLevel 新的等級
+   * 初始化
    */
-  const handleLevelUp = useCallback((newLevel: number) => {
-    if (!currentClass) return;
-
-    // 檢查是否有新的職業進階獎勵
-    const levelProgression = currentClass.progression.find(
-      prog => prog.level === newLevel
-    );
-
-    if (levelProgression) {
-      // 解鎖新技能
-      levelProgression.unlockedSkills.forEach(skillId => {
-        // 未來可以添加技能解鎖的通知或動畫效果
-        console.log(`解鎖新技能: ${skillId}`);
-      });
-
-      // 添加屬性獎勵
-      setCharacterStats(prev => {
-        if (!prev || !levelProgression.attributeBonus) return prev;
-
-        return {
-          ...prev,
-          strength: prev.strength + (levelProgression.attributeBonus.strength || 0),
-          dexterity: prev.dexterity + (levelProgression.attributeBonus.dexterity || 0),
-          intelligence: prev.intelligence + (levelProgression.attributeBonus.intelligence || 0),
-          health: prev.health + (levelProgression.attributeBonus.health || 0),
-          mana: prev.mana + (levelProgression.attributeBonus.mana || 0),
-        };
-      });
+  useEffect(() => {
+    if (playerData) {
+      // 設置職業
+      if (playerData.currentClassId) {
+        setCurrentClass(classes[playerData.currentClassId]);
+      }
+      // 設置背包
+      if (playerData.inventory) {
+        // 轉換成 InventoryItem 格式
+        const inventoryItems = playerData.inventory.map((itemId, index) => {
+          const item = items.find(i => i.id === itemId);
+          if (!item) return null;
+          return {
+            ...item,
+            quantity: 1,
+            slot: index
+          };
+        }).filter(Boolean) as InventoryItem[];
+        setInventory(inventoryItems);
+      }
+      // 設置裝備
+      if (playerData.equipped) {
+        const weapon = playerData.equipped.weapon ? 
+          weapons.find(w => w.id === playerData.equipped.weapon) : 
+          null;
+        setEquipment({ weapon });
+      }
     }
-  }, [currentClass]);
+  }, [playerData]);
 
   /**
    * 增加經驗值並處理升級
-   * @param amount 獲得的經驗值數量
    */
   const gainExperience = useCallback((amount: number): void => {
-    if (!characterStats || !currentClass) return;
+    if (!playerData?.characterStats || !currentClass) return;
+    const characterStats = playerData.characterStats;
 
-    setCharacterStats(prev => {
-      if (!prev || !currentClass) return prev;
-
-      let newExp = prev.experience + amount;
-      let newLevel = prev.level;
-      let newNextLevelExp = prev.nextLevelExp;
+    const newStats = (() => {
+      let newExp = characterStats.experience + amount;
+      let newLevel = characterStats.level;
+      let newNextLevelExp = characterStats.nextLevelExp;
 
       // 檢查是否升級
       while (newExp >= newNextLevelExp) {
@@ -151,104 +142,34 @@ export const useGameData = (playerData?: PlayerData) => {
         newNextLevelExp = calculateExpToNextLevel(newLevel);
       }
 
-      // 計算新的屬性值
-      const newStats = calculateStatGrowth(
-        currentClass.baseStats,
-        currentClass.growthStats,
-        newLevel
-      );
+      // 如果升級了才計算新的屬性值
+      if (newLevel > characterStats.level) {
+        const newStats = calculateStatGrowth(
+          currentClass.baseStats,
+          currentClass.growthStats,
+          newLevel
+        );
 
-      // 如果升級了，處理等級提升效果
-      if (prev.level < newLevel) {
-        handleLevelUp(newLevel);
+        return {
+          ...newStats,
+          experience: newExp,
+          nextLevelExp: newNextLevelExp
+        };
       }
 
-      // 更新角色狀態
+      // 沒升級就只更新經驗值
       return {
-        ...prev,
-        ...newStats,
-        level: newLevel,
+        ...characterStats,
         experience: newExp,
-        nextLevelExp: newNextLevelExp,
-        // 保留當前的生命值和魔力值，而不是使用基礎值
-        health: prev.health,
-        mana: prev.mana
+        nextLevelExp: newNextLevelExp
       };
-    });
-  }, [characterStats, currentClass, handleLevelUp]);
+    })();
 
-  
-  /**
-   * 初始化玩家資料
-   */
-  const initializePlayerData = (playerData: PlayerData) => {
-    setCharacterStats(playerData.characterStats);
-    setCurrentClass(classes[playerData.currentClassId]);
-  };
-
-  /**
-   * 選擇職業
-   * 設置基礎屬性並初始化裝備和技能
-   * 
-   * @param classId - 職業ID
-   * @returns 是否成功選擇職業
-   */
-  const selectClass = useCallback((classId: string): boolean => {
-    const classData = classMap.get(classId);
-    if (!classData) return false;
-
-    // 檢查職業要求
-    if (classData.requirements) {
-      const { requirements } = classData;
-      if (requirements.baseClass && (!currentClass || currentClass.id !== requirements.baseClass)) {
-        return false;
-      }
-      if (requirements.level && (!characterStats || characterStats.level < requirements.level)) {
-        return false;
-      }
-      if (requirements.stats && characterStats) {
-        const { stats } = requirements;
-        if (
-          (stats.strength && characterStats.strength < stats.strength) ||
-          (stats.dexterity && characterStats.dexterity < stats.dexterity) ||
-          (stats.intelligence && characterStats.intelligence < stats.intelligence)
-        ) {
-          return false;
-        }
-      }
-    }
-
-    // 初始化角色狀態
-    setCurrentClass(classData);
-    setCharacterStats(classData.baseStats);
-    setEquipment({ weapon: null });
-    setInventory([]);
-    setSkillCooldowns({});
-    setActiveEffects({} as Record<EffectType, number>);
-
-    // 裝備初始裝備
-    classData.startingEquipment.forEach(itemId => {
-      const weapon = weapons.find(w => w.id === itemId);
-      if (weapon) {
-        equipWeapon(weapon);
-      } else {
-        const item = items.find(i => i.id === itemId);
-        if (item) {
-          addToInventory(item.id);
-        }
-      }
-    });
-
-    return true;
-  }, [currentClass, characterStats]);
+    onStatsChange?.(newStats);
+  }, [playerData?.characterStats, currentClass, onStatsChange]);
 
   /**
    * 將物品添加到背包
-   * 處理物品堆疊和背包空間檢查
-   * 
-   * @param itemId - 物品ID
-   * @param quantity - 數量（默認為1）
-   * @returns 是否成功添加物品
    */
   const addToInventory = useCallback((itemId: string, quantity: number = 1): boolean => {
     const item = items.find(i => i.id === itemId);
@@ -256,7 +177,6 @@ export const useGameData = (playerData?: PlayerData) => {
 
     setInventory(prev => {
       if (item.stackable) {
-        // 尋找可堆疊的位置
         const existingItem = prev.find(i => i.id === itemId && i.quantity < (item.maxStack || Infinity));
         if (existingItem) {
           const newQuantity = Math.min(
@@ -271,7 +191,6 @@ export const useGameData = (playerData?: PlayerData) => {
         }
       }
 
-      // 找到新的空位
       const nextSlot = prev.length > 0 
         ? Math.max(...prev.map(i => i.slot)) + 1 
         : 0;
@@ -287,19 +206,100 @@ export const useGameData = (playerData?: PlayerData) => {
   }, []);
 
   /**
+   * 從背包移除物品
+   */
+  const removeFromInventory = useCallback((slot: number, quantity: number = 1): boolean => {
+    let removed = false;
+
+    setInventory(prev => {
+      const item = prev.find(i => i.slot === slot);
+      if (!item) return prev;
+
+      if (item.quantity <= quantity) {
+        return prev.filter(i => i.slot !== slot);
+      } else {
+        return prev.map(i => 
+          i.slot === slot 
+            ? { ...i, quantity: i.quantity - quantity }
+            : i
+        );
+      }
+    });
+
+    return removed;
+  }, []);
+
+  /**
+   * 移動背包物品
+   */
+  const moveItem = useCallback((fromSlot: number, toSlot: number): boolean => {
+    setInventory(prev => {
+      const fromIndex = prev.findIndex(i => i.slot === fromSlot);
+      const toIndex = prev.findIndex(i => i.slot === toSlot);
+      
+      if (fromIndex === -1) return prev;
+      
+      const newInventory = [...prev];
+      const [movedItem] = newInventory.splice(fromIndex, 1);
+      
+      // 如果目標位置已有物品
+      if (toIndex !== -1) {
+        const targetItem = newInventory[toIndex];
+        
+        // 如果是相同物品且可堆疊
+        if (movedItem.id === targetItem.id && movedItem.stackable) {
+          const totalQuantity = movedItem.quantity + targetItem.quantity;
+          const maxStack = movedItem.maxStack || Infinity;
+          
+          if (totalQuantity <= maxStack) {
+            newInventory[toIndex] = {
+              ...targetItem,
+              quantity: totalQuantity
+            };
+          } else {
+            newInventory[toIndex] = {
+              ...targetItem,
+              quantity: maxStack
+            };
+            newInventory.splice(fromIndex, 0, {
+              ...movedItem,
+              quantity: totalQuantity - maxStack
+            });
+          }
+        } else {
+          // 不同物品則交換位置
+          newInventory.splice(fromIndex, 0, {
+            ...targetItem,
+            slot: fromSlot
+          });
+          newInventory[toIndex] = {
+            ...movedItem,
+            slot: toSlot
+          };
+        }
+      } else {
+        // 目標位置為空，直接移動
+        newInventory.splice(toIndex, 0, {
+          ...movedItem,
+          slot: toSlot
+        });
+      }
+      
+      return newInventory;
+    });
+
+    return true;
+  }, []);
+
+  /**
    * 檢查是否可以裝備武器
-   * 檢查職業限制和屬性要求
-   * 
-   * @param weapon - 要檢查的武器
-   * @returns 是否可以裝備
    */
   const canEquipWeapon = useCallback((weapon: Weapon): boolean => {
-    if (!currentClass || !characterStats) return false;
+    if (!currentClass || !playerData?.characterStats) return false;
+    const characterStats = playerData.characterStats;
 
-    // 檢查職業武器限制
     if (!currentClass.allowedWeapons.includes(weapon.type)) return false;
 
-    // 檢查需求
     if (weapon.requirements) {
       const { requirements } = weapon;
       if (
@@ -313,13 +313,10 @@ export const useGameData = (playerData?: PlayerData) => {
     }
 
     return true;
-  }, [currentClass, characterStats]);
+  }, [currentClass, playerData?.characterStats]);
 
   /**
    * 裝備武器
-   * 
-   * @param weapon - 要裝備的武器
-   * @returns 是否成功裝備
    */
   const equipWeapon = useCallback((weapon: Weapon): boolean => {
     if (!canEquipWeapon(weapon)) return false;
@@ -334,28 +331,22 @@ export const useGameData = (playerData?: PlayerData) => {
 
   /**
    * 使用技能
-   * 檢查冷卻、消耗和要求
-   * 
-   * @param skillId - 技能ID
-   * @returns 是否成功使用技能
    */
   const useSkill = useCallback((skillId: string): boolean => {
     const skill = skillMap.get(skillId);
-    if (!skill || !characterStats) return false;
+    if (!skill || !playerData?.characterStats) return false;
+    const characterStats = playerData.characterStats;
 
     const now = Date.now();
 
-    // 檢查冷卻
     if (skillCooldowns[skillId] && now < skillCooldowns[skillId]) {
       return false;
     }
 
-    // 檢查魔力消耗
     if (characterStats.mana < skill.manaCost) {
       return false;
     }
 
-    // 檢查武器要求
     if (
       skill.requirements?.weapon &&
       (!equipment.weapon || !skill.requirements.weapon.includes(equipment.weapon.type))
@@ -363,22 +354,19 @@ export const useGameData = (playerData?: PlayerData) => {
       return false;
     }
 
-    // 更新冷卻
     setSkillCooldowns(prev => ({
       ...prev,
       [skillId]: now + (skill.cooldown * 1000)
     }));
 
-    // 消耗魔力
-    setCharacterStats(prev => {
-      if (!prev) return prev;
-      return {
-        ...prev,
-        mana: prev.mana - skill.manaCost
-      };
-    });
+    // 更新魔力值
+    const newStats = {
+      ...characterStats,
+      mana: characterStats.mana - skill.manaCost
+    };
+    onStatsChange?.(newStats);
 
-    // 應用效果
+    // 處理技能效果
     if (skill.effects) {
       setActiveEffects(prev => {
         const newEffects = { ...prev };
@@ -392,13 +380,10 @@ export const useGameData = (playerData?: PlayerData) => {
     }
 
     return true;
-  }, [characterStats, equipment.weapon]);
+  }, [playerData?.characterStats, equipment.weapon, skillCooldowns, onStatsChange]);
 
   /**
-   * 獲取技能的剩餘冷卻時間
-   * 
-   * @param skillId - 技能ID
-   * @returns 剩餘冷卻時間（秒）
+   * 獲取技能冷卻時間
    */
   const getSkillCooldown = useCallback((skillId: string): number => {
     const endTime = skillCooldowns[skillId];
@@ -409,10 +394,7 @@ export const useGameData = (playerData?: PlayerData) => {
   }, [skillCooldowns]);
 
   /**
-   * 檢查效果是否處於活動狀態
-   * 
-   * @param effectType - 效果類型
-   * @returns 是否活動中
+   * 檢查效果是否活動中
    */
   const isEffectActive = useCallback((effectType: EffectType): boolean => {
     const endTime = activeEffects[effectType];
@@ -420,43 +402,51 @@ export const useGameData = (playerData?: PlayerData) => {
   }, [activeEffects]);
 
   /**
+   * 檢查職業是否擁有該技能
+   */
+  const isClassSkillAvailable = useCallback((classId: string, skillId: string): boolean => 
+    skillsByClass[classId]?.some(skill => skill.id === skillId) ?? false
+  , []);
+
+  /**
    * 獲取當前經驗值百分比
-   * @returns 經驗值百分比
    */
   const getExpPercentage = useCallback((): number => {
-    if (!characterStats) return 0;
-    return (characterStats.experience / characterStats.nextLevelExp) * 100;
-  }, [characterStats]);
+    if (!playerData?.characterStats) return 0;
+    const { experience, nextLevelExp } = playerData.characterStats;
+    return (experience / nextLevelExp) * 100;
+  }, [playerData?.characterStats]);
 
   return {
     // 狀態
-    characterStats,
+    characterStats: playerData?.characterStats || null,
     currentClass,
     inventory,
     equipment,
     activeEffects,
 
     // 操作方法
-    initializePlayerData,
-    selectClass,
-    addToInventory,
-    equipWeapon,
-    useSkill,
     gainExperience,
+    getExpPercentage,
 
-    // 查詢方法
+    // 背包相關
+    addToInventory,
+    removeFromInventory,
+    moveItem,
+
+    // 裝備相關
+    canEquipWeapon,
+    equipWeapon,
+
+    // 技能相關
+    useSkill,
     getSkillCooldown,
     isEffectActive,
-    canEquipWeapon,
-    getExpPercentage,
+    isClassSkillAvailable,
 
     // 遊戲數據
     classes: Object.values(classes),
     skills,
     skillsByClass,
-
-    // 工具方法
-    isClassSkillAvailable: (classId: string, skillId: string) => 
-      skillsByClass[classId]?.some(skill => skill.id === skillId) ?? false,
   };
 };

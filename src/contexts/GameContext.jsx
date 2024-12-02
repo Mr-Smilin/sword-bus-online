@@ -1,8 +1,8 @@
 import React, {
 	createContext,
 	useContext,
-	useState,
 	useCallback,
+	useState,
 	useEffect,
 } from "react";
 import { useGameSave } from "../hooks/useGameSave";
@@ -10,8 +10,16 @@ import { useGameData } from "../hooks/useGameData";
 import { MapProvider } from "./MapContext";
 import TutorialModal from "../components/tutorial/TutorialModal";
 
+/**
+ * 遊戲上下文
+ * 用於全局共享遊戲狀態和方法
+ */
 const GameContext = createContext(null);
 
+/**
+ * 遊戲狀態提供者組件
+ * 管理遊戲的核心狀態和邏輯
+ */
 export const GameProvider = ({ children }) => {
 	// 遊戲存檔管理
 	const {
@@ -23,10 +31,20 @@ export const GameProvider = ({ children }) => {
 	} = useGameSave();
 
 	// 遊戲核心數據
-	const gameData = useGameData(saveData?.player);
+	const gameData = useGameData(
+		saveData?.player,
+		// 當角色屬性改變時，更新存檔
+		(newStats) => {
+			updatePlayerData({
+				characterStats: newStats,
+			});
+		}
+	);
 
 	/**
 	 * 處理新手引導完成
+	 * @param {string} name - 角色名稱
+	 * @param {string} classId - 職業ID
 	 */
 	const handleTutorialComplete = (name, classId) => {
 		const newSave = createNewPlayer(name, classId);
@@ -42,12 +60,13 @@ export const GameProvider = ({ children }) => {
 				"f1-wild-east": { currentExploration: 0, maxExploration: 0 },
 				"f1-wild-west": { currentExploration: 0, maxExploration: 0 },
 				"f1-dungeon": { currentExploration: 0, maxExploration: 0 },
-				// 其他區域的初始進度...
 			}
 		);
 	});
 
-	// 更新探索進度的方法
+	/**
+	 * 更新探索進度
+	 */
 	const updateAreaProgress = useCallback((areaId, progress) => {
 		setAreaProgress((prev) => ({
 			...prev,
@@ -61,13 +80,16 @@ export const GameProvider = ({ children }) => {
 		currentAreaId: "f1-town",
 	});
 
+	// 當存檔資料更新時，更新位置資料
 	useEffect(() => {
 		if (saveData?.player?.locationData) {
 			setLocationData(saveData.player.locationData);
 		}
 	}, [saveData]);
 
-	// 更新位置的方法
+	/**
+	 * 更新位置資料
+	 */
 	const updateLocationData = useCallback(
 		(newLocationData) => {
 			setLocationData((prevData) => {
@@ -82,20 +104,33 @@ export const GameProvider = ({ children }) => {
 		[updatePlayerData]
 	);
 
-	// 提供 context 值
+	/**
+	 * 整合所有遊戲相關的狀態和方法
+	 */
 	const contextValue = {
+		// 存檔狀態
 		player: saveData?.player || null,
 		isNewPlayer: !saveData,
 		eventData: saveData?.events || {},
+
+		// 探索相關
 		areaProgress,
 		locationData,
+
+		// 核心遊戲數據和方法
+		...gameData,
+
+		// 存檔操作方法
 		updatePlayerData,
 		updateEventData,
 		updateAreaProgress,
 		updateLocationData,
-		...gameData,
 	};
 
+	/**
+	 * 如果沒有存檔，顯示新手引導
+	 * 否則顯示遊戲主內容
+	 */
 	return (
 		<GameContext.Provider value={contextValue}>
 			{!saveData ? (
@@ -107,6 +142,10 @@ export const GameProvider = ({ children }) => {
 	);
 };
 
+/**
+ * 遊戲狀態 Hook
+ * 用於在組件中獲取遊戲狀態和方法
+ */
 export const useGame = () => {
 	const context = useContext(GameContext);
 	if (!context) {

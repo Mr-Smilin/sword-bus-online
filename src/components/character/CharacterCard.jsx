@@ -11,7 +11,7 @@ import {
 	Button,
 } from "@mui/material";
 import { styled } from "@mui/material/styles";
-import { Heart, Brain, Swords, Wind, Star, Sword } from "lucide-react";
+import { Heart, Brain, Star, Sword } from "lucide-react";
 import ProfessionTab from "./ProfessionTab";
 import { useGame } from "../../contexts/GameContext";
 
@@ -35,7 +35,7 @@ const StatBar = ({ icon: Icon, label, value, maxValue, color = "primary" }) => (
 				color={color}
 				sx={{
 					"& .MuiLinearProgress-bar": {
-						transition: "transform 0.8s ease-in-out",
+						transition: "transform 0.3s",
 					},
 				}}
 			/>
@@ -78,34 +78,30 @@ const StyledTab = styled(Tab)({
  * 角色卡片主組件
  */
 export const CharacterCard = () => {
-	// 獲取遊戲數據
 	const { player, gainExperience, getExpPercentage } = useGame();
+	const { characterStats } = player;
 
-	const { characterStats, currentClassId } = player;
-
-	// Tab 切換狀態
 	const [tabValue, setTabValue] = useState(0);
-
-	// 動畫相關
 	const { style, AnimatedComponent } = useAnimation("fadeIn", {
 		config: { duration: 500 },
 	});
 
-	// 血量和魔力值動畫
-	const [currentHP, setCurrentHP] = useState(100);
-	const [currentMP, setCurrentMP] = useState(80);
+	// 當前狀態
+	const [currentHP, setCurrentHP] = useState(0);
+	const [currentMP, setCurrentMP] = useState(0);
+	const [currentExp, setCurrentExp] = useState(0);
+
+	// 動畫值
 	const animatedHP = useNumberAnimation(currentHP);
 	const animatedMP = useNumberAnimation(currentMP);
+	const animatedExp = useNumberAnimation(currentExp);
 
-	// 經驗值動畫
-	const [exp, setExp] = useState(0);
-	const [nextLevelExp, setNextLevelExp] = useState(100);
-	const animatedExp = useNumberAnimation(exp);
+	// 經驗值百分比
 	const expPercentage = getExpPercentage();
 
 	// 模擬獲得經驗值
 	const simulateExpGain = () => {
-		gainExperience(50); // 獲得50點經驗值
+		gainExperience(50);
 	};
 
 	// Tab 切換處理
@@ -115,10 +111,11 @@ export const CharacterCard = () => {
 
 	// 更新狀態
 	useEffect(() => {
-		setCurrentHP(characterStats?.health);
-		setCurrentMP(characterStats?.mana);
-		setExp(characterStats?.experience);
-		setNextLevelExp(characterStats?.nextLevelExp);
+		if (!!characterStats) {
+			setCurrentHP(characterStats.health);
+			setCurrentMP(characterStats.mana);
+			setCurrentExp(characterStats.experience);
+		}
 	}, [characterStats]);
 
 	if (!player) {
@@ -160,7 +157,6 @@ export const CharacterCard = () => {
 				<Box sx={{ flexGrow: 1, display: "flex", flexDirection: "column" }}>
 					{/* 角色狀態面板 */}
 					<TabPanel value={tabValue} index={0}>
-						{/* 主要內容區 */}
 						<Box sx={{ p: 1.5, flexGrow: 1, overflow: "auto" }}>
 							<Grid container spacing={1.5}>
 								{/* 等級資訊 */}
@@ -183,12 +179,13 @@ export const CharacterCard = () => {
 													value={expPercentage}
 													sx={{
 														"& .MuiLinearProgress-bar": {
-															transition: "transform 0.8s ease-in-out",
+															transition: "transform 0.3s",
 														},
 													}}
 												/>
 												<Typography variant="caption" color="text.secondary">
-													經驗值: {animatedExp} / {nextLevelExp}
+													經驗值: {Math.floor(animatedExp)} /{" "}
+													{characterStats?.nextLevelExp}
 												</Typography>
 											</Box>
 										</Grid>
@@ -201,7 +198,7 @@ export const CharacterCard = () => {
 										icon={Heart}
 										label="生命值"
 										value={animatedHP}
-										maxValue={100}
+										maxValue={characterStats?.health || 100}
 										color="error"
 									/>
 								</Grid>
@@ -212,7 +209,7 @@ export const CharacterCard = () => {
 										icon={Brain}
 										label="魔力值"
 										value={animatedMP}
-										maxValue={100}
+										maxValue={characterStats?.mana || 100}
 									/>
 								</Grid>
 							</Grid>
@@ -232,7 +229,7 @@ export const CharacterCard = () => {
 						>
 							<Button
 								variant="outlined"
-								onClick={simulateExpGain} // 測試用：點擊武器欄位可以獲得經驗值
+								onClick={simulateExpGain}
 								startIcon={<Sword size={20} />}
 								sx={{
 									width: "100%",
@@ -244,7 +241,7 @@ export const CharacterCard = () => {
 									},
 								}}
 							>
-								<Typography variant="body2">武器</Typography>
+								<Typography variant="body2">增加經驗值(測試)</Typography>
 							</Button>
 						</Box>
 					</TabPanel>
