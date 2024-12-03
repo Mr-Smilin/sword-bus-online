@@ -66,12 +66,12 @@ const calculateStatGrowth = (
 /**
  * 遊戲數據管理 Hook
  * @param playerData 玩家資料
- * @param onStatsChange 角色屬性更新回調
+ * @param onPlayerChange 角色情報更新回調
  * @returns 遊戲數據和操作方法
  */
 export const useGameData = (
   playerData?: PlayerData,
-  onStatsChange?: (newStats: CharacterStats) => void
+  onPlayerChange?: (newPlayer: PlayerData) => void
 ) => {
   // 當前職業資訊
   const [currentClass, setCurrentClass] = useState<Class | null>(null);
@@ -123,6 +123,34 @@ export const useGameData = (
     }
   }, [playerData]);
 
+  // 更新當前生命值
+  const updateCurrentHealth = useCallback((amount: number) => {
+    if (!playerData?.characterStats) return;
+    const maxHealth = playerData.characterStats.health;
+    const newStats = {
+      ...playerData,
+      characterStats:{
+        ...playerData.characterStats,
+        currentHealth: Math.min(Math.max(0, playerData.currentHealth + amount), maxHealth)
+      }
+    };
+    onPlayerChange?.(newStats);
+  }, [playerData, onPlayerChange]);
+
+  // 更新當前魔力值
+  const updateCurrentMana = useCallback((amount: number) => {
+    if (!playerData?.characterStats) return;
+    const maxMana = playerData.characterStats.mana;
+    const newStats = {
+      ...playerData,
+      characterStats:{
+        ...playerData.characterStats,
+        currentMana: Math.min(Math.max(0, playerData.currentMana + amount), maxMana)
+      }
+    };
+    onPlayerChange?.(newStats);
+  }, [playerData, onPlayerChange]);
+
   /**
    * 增加經驗值並處理升級
    */
@@ -151,22 +179,29 @@ export const useGameData = (
         );
 
         return {
-          ...newStats,
-          experience: newExp,
-          nextLevelExp: newNextLevelExp
+          ...playerData,
+          characterStats:{
+            ...characterStats,
+            ...newStats,
+            experience: newExp,
+            nextLevelExp: newNextLevelExp
+          }
         };
       }
 
       // 沒升級就只更新經驗值
       return {
-        ...characterStats,
-        experience: newExp,
-        nextLevelExp: newNextLevelExp
+        ...playerData,
+        characterStats:{
+          ...characterStats,
+          experience: newExp,
+          nextLevelExp: newNextLevelExp
+        }
       };
     })();
 
-    onStatsChange?.(newStats);
-  }, [playerData?.characterStats, currentClass, onStatsChange]);
+    onPlayerChange?.(newStats);
+  }, [playerData, currentClass, onPlayerChange]);
 
   /**
    * 將物品添加到背包
@@ -361,10 +396,13 @@ export const useGameData = (
 
     // 更新魔力值
     const newStats = {
-      ...characterStats,
-      mana: characterStats.mana - skill.manaCost
+      ...playerData,
+      characterStats:{
+        ...characterStats,
+        mana: characterStats.mana - skill.manaCost
+      }
     };
-    onStatsChange?.(newStats);
+    onPlayerChange?.(newStats);
 
     // 處理技能效果
     if (skill.effects) {
@@ -380,7 +418,7 @@ export const useGameData = (
     }
 
     return true;
-  }, [playerData?.characterStats, equipment.weapon, skillCooldowns, onStatsChange]);
+  }, [playerData, equipment.weapon, skillCooldowns, onPlayerChange]);
 
   /**
    * 獲取技能冷卻時間
@@ -409,6 +447,74 @@ export const useGameData = (
   , []);
 
   /**
+   * 獲取所有當前職業已學習/未學習技能
+   */
+  const getAvailableSkills = useCallback(() => {
+    if (!playerData?.currentClassId || !currentClass) return { 
+      active: [], 
+      locked: [] 
+    };
+   
+    const checkRequirements = (skill: Skill): boolean => {
+      if (!skill.requirements) return true;
+   
+      const { level, weapon } = skill.requirements;
+      if (level && playerData.characterStats.level < level) return false;
+   
+      if (weapon && playerData.equipped.weapon) {
+        const equippedWeaponType = weapons.find(w => w.id === playerData.equipped.weapon)?.type;
+        return equippedWeaponType && weapon.includes(equippedWeaponType);
+      }
+      return true;
+    };
+   
+    // 所有基礎/進階/終極技能ID
+    const classSkillIds = [
+      ...currentClass.skills.basic,
+      ...currentClass.skills.advanced,
+      ...currentClass.skills.ultimate
+    ];
+   
+    // 當前職業可學技能列表
+    const classSkillList = skillsByClass[playerData.currentClassId] || [];
+    
+    // 額外已學技能列表
+    const unlockedSkills = playerData.classProgress?.[playerData.currentClassId]?.unlockedSkills || [];
+   
+    const skillsMap = {
+      active: [] as Skill[],
+      locked: [] as Skill[]
+    };
+
+    let useSkillIds = new Set<string>();
+   
+    // 處理職業技能
+    classSkillList.forEach(skill => {
+      if (classSkillIds.includes(skill.id)) {
+        if(!useSkillIds.has(skill.id)) {
+          if (checkRequirements(skill)) {
+            skillsMap.active.push(skill);
+          } else {
+            skillsMap.locked.push(skill);
+          }
+          useSkillIds.add(skill.id);
+        }
+      }
+    });
+   
+    // 處理額外技能
+    unlockedSkills.forEach(skillId => {
+      const skill = skillMap.get(skillId);
+      if (skill && checkRequirements(skill) && !useSkillIds.has(skill.id)) {
+        skillsMap.active.push(skill);
+        useSkillIds.add(skill.id);
+      }
+    });
+   
+    return skillsMap;
+   }, [playerData, currentClass]);
+
+  /**
    * 獲取當前經驗值百分比
    */
   const getExpPercentage = useCallback((): number => {
@@ -418,35 +524,29 @@ export const useGameData = (
   }, [playerData?.characterStats]);
 
   return {
-    // 狀態
-    characterStats: playerData?.characterStats || null,
-    currentClass,
-    inventory,
-    equipment,
-    activeEffects,
-
-    // 操作方法
-    gainExperience,
-    getExpPercentage,
-
+    // 角色狀態相關
+    updateCurrentHealth,
+    updateCurrentMana,
+  
     // 背包相關
     addToInventory,
     removeFromInventory,
     moveItem,
-
+  
     // 裝備相關
     canEquipWeapon,
     equipWeapon,
-
+  
     // 技能相關
+    activeEffects,
     useSkill,
     getSkillCooldown,
+    getAvailableSkills,
     isEffectActive,
     isClassSkillAvailable,
-
-    // 遊戲數據
-    classes: Object.values(classes),
-    skills,
-    skillsByClass,
+  
+    // 經驗值相關
+    gainExperience,
+    getExpPercentage,
   };
 };

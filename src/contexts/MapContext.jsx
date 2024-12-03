@@ -135,7 +135,6 @@ export const MapProvider = ({ children }) => {
 					} else {
 						// 在 100% 時等待 1 秒再結束移動
 						setTimeout(() => {
-							console.log("save", targetAreaId);
 							// 移動完成後更新存檔
 							updateLocationData({
 								currentFloorId: currentFloor.id,

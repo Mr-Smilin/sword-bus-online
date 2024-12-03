@@ -33,11 +33,9 @@ export const GameProvider = ({ children }) => {
 	// 遊戲核心數據
 	const gameData = useGameData(
 		saveData?.player,
-		// 當角色屬性改變時，更新存檔
-		(newStats) => {
-			updatePlayerData({
-				characterStats: newStats,
-			});
+		// 當角色情報改變時，更新存檔
+		(newPlayer) => {
+			updatePlayerData(newPlayer);
 		}
 	);
 
@@ -48,7 +46,7 @@ export const GameProvider = ({ children }) => {
 	 */
 	const handleTutorialComplete = (name, classId) => {
 		const newSave = createNewPlayer(name, classId);
-		gameData.initializePlayerData(newSave.player);
+		// gameData.initializePlayerData(newSave.player);
 	};
 
 	// 初始化探索進度

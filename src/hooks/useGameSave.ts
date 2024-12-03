@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { GameSaveData, PlayerData, GameEventData } from '../data/type';
+import { classes } from '../data/classes';
 
 const SAVE_KEY = 'sao_game_save';
 const CURRENT_VERSION = '1.0.0';
@@ -103,6 +104,11 @@ export const useGameSave = () => {
         id: uuidv4(),
         name,
         currentClassId: classId,
+        classProgress: {
+          // [classId]: {
+          //   unlockedSkills: classes[classId].skills.basic,  // 初始職業的基礎技能
+          // }
+        },
         characterStats: {
           level: 1,
           experience: 0,
@@ -114,6 +120,8 @@ export const useGameSave = () => {
           intelligence: 10
         },
         inventory: [],
+        currentHealth: 100,
+        currentMana: 100,
         equipped: {},
         locationData: {
           currentFloorId: 1,

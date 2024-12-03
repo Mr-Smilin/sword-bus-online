@@ -22,7 +22,10 @@ export interface PlayerData {
   name: string;                  // 玩家名稱
   characterStats: CharacterStats;// 角色屬性
   currentClassId: string;        // 當前職業ID
+  classProgress: Record<string, ClassProgress>;  // 所有職業進度狀態 
   inventory: string[];           // 背包物品ID列表
+  currentHealth: number;         // 當前生命值
+  currentMana: number;           // 當前魔力值
   equipped: {                    // 已裝備物品
     weapon?: string;            // 武器ID
   };
@@ -137,6 +140,13 @@ export interface Weapon {
   };
   value: number;           // 武器價值
   weight: number;          // 武器重量
+}
+
+/**
+ * 該職業額外加乘(擴充選項)
+ */
+export interface ClassProgress {
+  unlockedSkills: string[];  // 已解鎖技能
 }
 
 /**

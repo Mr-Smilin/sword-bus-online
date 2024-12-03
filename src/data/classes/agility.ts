@@ -28,7 +28,7 @@ export const agilityClasses: Record<string, Class> = {
       skills: {
         basic: [
           'quick_shot',      // 1.5秒CD 快速射擊
-          'wind_step'        // 風行疾步
+          'aimed_shot'        // 風行疾步
         ],
         advanced: [
           'multishot',       // 多重射擊
