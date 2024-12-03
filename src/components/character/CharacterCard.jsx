@@ -112,8 +112,8 @@ export const CharacterCard = () => {
 	// 更新狀態
 	useEffect(() => {
 		if (!!characterStats) {
-			setCurrentHP(characterStats.health);
-			setCurrentMP(characterStats.mana);
+			setCurrentHP(characterStats.currentHealth);
+			setCurrentMP(characterStats.currentMana);
 			setCurrentExp(characterStats.experience);
 		}
 	}, [characterStats]);

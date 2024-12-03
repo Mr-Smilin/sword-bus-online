@@ -9,7 +9,6 @@ export const agilityClasses: Record<string, Class> = {
       type: 'beginner',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 90,
         mana: 60,
@@ -69,7 +68,6 @@ export const agilityClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 100,
         mana: 80,
@@ -145,7 +143,6 @@ export const agilityClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 85,
         mana: 70,
@@ -220,7 +217,6 @@ export const agilityClasses: Record<string, Class> = {
       type: 'beginner',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 85,
         mana: 50,
@@ -280,7 +276,6 @@ export const agilityClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 90,
         mana: 60,

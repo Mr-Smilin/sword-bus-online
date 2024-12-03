@@ -9,7 +9,6 @@ export const supportClasses: Record<string, Class> = {
       type: 'beginner',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 90,
         mana: 100,
@@ -64,7 +63,6 @@ export const supportClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 95,
         mana: 120,
@@ -139,7 +137,6 @@ export const supportClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 110,
         mana: 80,
@@ -215,7 +212,6 @@ export const supportClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 85,
         mana: 110,
@@ -291,7 +287,6 @@ export const supportClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 88,
         mana: 105,

@@ -3,15 +3,19 @@
  * 角色狀態介面
  * 定義角色的基本屬性和狀態
  */
-export interface CharacterStats {
+export interface BaseCharacterStats{
   level: number;          // 角色等級
-  experience: number;     // 當前經驗值
   nextLevelExp: number;   // 下一級所需經驗值
   health: number;         // 生命值
   mana: number;          // 魔力值
   strength: number;      // 力量 - 影響物理攻擊力和負重能力
   dexterity: number;     // 敏捷 - 影響命中率、迴避率和攻擊速度
   intelligence: number;  // 智力 - 影響魔法傷害和魔力值
+}
+export interface CharacterStats extends BaseCharacterStats {
+  experience: number;     // 當前經驗值
+  currentHealth: number;  // 當前生命值
+  currentMana: number;   // 當前魔力值
 }
 
 /**
@@ -24,8 +28,6 @@ export interface PlayerData {
   currentClassId: string;        // 當前職業ID
   classProgress: Record<string, ClassProgress>;  // 所有職業進度狀態 
   inventory: string[];           // 背包物品ID列表
-  currentHealth: number;         // 當前生命值
-  currentMana: number;           // 當前魔力值
   equipped: {                    // 已裝備物品
     weapon?: string;            // 武器ID
   };
@@ -180,7 +182,7 @@ export interface Class {
   name: string;            // 職業名稱
   description: string;     // 職業描述
   type: ClassType;         // 職業等級
-  baseStats: CharacterStats; // 基礎屬性
+  baseStats: BaseCharacterStats; // 基礎屬性
   growthStats: {           // 成長屬性（每級增加）
     health: number;       // 生命值成長
     mana: number;         // 魔力值成長

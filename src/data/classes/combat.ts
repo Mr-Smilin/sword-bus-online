@@ -9,7 +9,6 @@ export const combatClasses: Record<string, Class> = {
       type: 'beginner',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 120,
         mana: 40,
@@ -69,7 +68,6 @@ export const combatClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 150,
         mana: 50,
@@ -138,7 +136,6 @@ export const combatClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 130,
         mana: 30,
@@ -207,7 +204,6 @@ export const combatClasses: Record<string, Class> = {
       type: 'beginner',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 80,
         mana: 120,
@@ -267,7 +263,6 @@ export const combatClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 85,
         mana: 150,
@@ -342,7 +337,6 @@ export const combatClasses: Record<string, Class> = {
       type: 'advanced',
       baseStats: {
         level: 1,
-        experience: 0,
         nextLevelExp: 100,
         health: 90,
         mana: 140,

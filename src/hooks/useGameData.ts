@@ -1,5 +1,6 @@
 import { useCallback, useState,useEffect } from 'react';
 import { 
+    BaseCharacterStats,
     CharacterStats, 
     PlayerData,
     Item, 
@@ -46,17 +47,19 @@ const calculateExpToNextLevel = (level: number): number => {
  * @returns 計算後的屬性值
  */
 const calculateStatGrowth = (
-  baseStats: CharacterStats,
+  baseStats: BaseCharacterStats,
   growthStats: Class['growthStats'],
   level: number
 ): CharacterStats => {
   return {
     ...baseStats,
     level,
-    experience: baseStats.experience,
+    experience: 0,
     nextLevelExp: calculateExpToNextLevel(level),
     health: Math.floor(baseStats.health + growthStats.health * (level - 1)),
+    currentHealth: Math.floor(baseStats.health + growthStats.health * (level - 1)),
     mana: Math.floor(baseStats.mana + growthStats.mana * (level - 1)),
+    currentMana: Math.floor(baseStats.mana + growthStats.mana * (level - 1)),
     strength: Math.floor(baseStats.strength + growthStats.strength * (level - 1)),
     dexterity: Math.floor(baseStats.dexterity + growthStats.dexterity * (level - 1)),
     intelligence: Math.floor(baseStats.intelligence + growthStats.intelligence * (level - 1))
@@ -131,7 +134,7 @@ export const useGameData = (
       ...playerData,
       characterStats:{
         ...playerData.characterStats,
-        currentHealth: Math.min(Math.max(0, playerData.currentHealth + amount), maxHealth)
+        currentHealth: Math.min(Math.max(0, playerData.characterStats.currentHealth + amount), maxHealth)
       }
     };
     onPlayerChange?.(newStats);
@@ -145,7 +148,7 @@ export const useGameData = (
       ...playerData,
       characterStats:{
         ...playerData.characterStats,
-        currentMana: Math.min(Math.max(0, playerData.currentMana + amount), maxMana)
+        currentMana: Math.min(Math.max(0, playerData.characterStats.currentHealth + amount), maxMana)
       }
     };
     onPlayerChange?.(newStats);
