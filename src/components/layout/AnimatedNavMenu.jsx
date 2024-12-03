@@ -143,7 +143,9 @@ const MenuItemButton = styled("button")(({ theme }) => ({
 }));
 
 // 特製的主題切換按鈕樣式，繼承自 MenuItemButton
-const ThemeToggleButton = styled(MenuItemButton)(({ theme, isDarkMode }) => ({
+export const ThemeToggleButton = styled(MenuItemButton, {
+	shouldForwardProp: (prop) => prop !== "isDarkMode",
+})(({ theme, isDarkMode }) => ({
 	"& svg": {
 		transition: "transform 0.3s ease-in-out",
 		transformOrigin: "center",
