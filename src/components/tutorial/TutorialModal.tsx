@@ -55,7 +55,7 @@ const TutorialModal = ({ onComplete }: TutorialModalProps) => {
    * 處理完成創建
    */
   const handleComplete = () => {
-    if (formData.name && formData.classId) {
+    if (!!formData.name && !!formData.classId) {
       onComplete(formData.name, formData.classId);
     }
   };

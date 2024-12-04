@@ -110,7 +110,7 @@ export const useGameSave = () => {
           // }
         },
         characterStats: {
-          level: 1,
+          level: 0,
           experience: 0,
           nextLevelExp: 100,
           health: 100,

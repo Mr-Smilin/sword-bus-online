@@ -78,7 +78,8 @@ const StyledTab = styled(Tab)({
  * 角色卡片主組件
  */
 export const CharacterCard = () => {
-	const { player, gainExperience, getExpPercentage } = useGame();
+	const { player, gainExperience, getExpPercentage, updatePlayerByLevel } =
+		useGame();
 	const { characterStats } = player;
 
 	const [tabValue, setTabValue] = useState(0);
@@ -101,7 +102,7 @@ export const CharacterCard = () => {
 
 	// 模擬獲得經驗值
 	const simulateExpGain = () => {
-		gainExperience(50);
+		gainExperience(500);
 	};
 
 	// Tab 切換處理

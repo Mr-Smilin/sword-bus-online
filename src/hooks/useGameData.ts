@@ -154,6 +154,87 @@ export const useGameData = (
     onPlayerChange?.(newStats);
   }, [playerData, onPlayerChange]);
 
+  // 根據等級更新當前狀態
+  const updatePlayerByLevel = useCallback((level: number, doUpdate: boolean = true) => {
+    console.log(playerData,currentClass);
+    if (!level || level <= 0 || !playerData?.characterStats || !currentClass) return;
+
+    // 先計算基礎屬性成長
+    const baseStats = calculateStatGrowth(
+      currentClass.baseStats,
+      currentClass.growthStats,
+      level
+    );
+
+    // 計算升級所需經驗值
+    const nextLevelExp = calculateExpToNextLevel(level);
+
+    // 檢查職業進階獎勵
+    const levelBonuses = currentClass.progression
+      .filter(prog => prog.level <= level)
+      .reduce((acc, prog) => ({
+        strength: (acc.strength || 0) + (prog.attributeBonus.strength || 0),
+        dexterity: (acc.dexterity || 0) + (prog.attributeBonus.dexterity || 0),
+        intelligence: (acc.intelligence || 0) + (prog.attributeBonus.intelligence || 0),
+        health: (acc.health || 0) + (prog.attributeBonus.health || 0),
+        mana: (acc.mana || 0) + (prog.attributeBonus.mana || 0),
+      }), {
+        strength: 0,
+        dexterity: 0,
+        intelligence: 0,
+        health: 0,
+        mana: 0,
+      });
+
+    // 合併基礎屬性和獎勵
+    const finalStats = {
+      ...baseStats,
+      level,
+      nextLevelExp,
+      health: baseStats.health + (levelBonuses.health || 0),
+      currentHealth: baseStats.health + (levelBonuses.health || 0), // 升級時回滿血量
+      mana: baseStats.mana + (levelBonuses.mana || 0),
+      currentMana: baseStats.mana + (levelBonuses.mana || 0), // 升級時回滿魔力
+      strength: baseStats.strength + (levelBonuses.strength || 0),
+      dexterity: baseStats.dexterity + (levelBonuses.dexterity || 0),
+      intelligence: baseStats.intelligence + (levelBonuses.intelligence || 0),
+      experience: 0, // 升級後經驗歸零
+    };
+
+    // 檢查當前等級可以解鎖的技能
+    const classProgression = currentClass.progression.find(prog => prog.level === level);
+    
+    // 取得已解鎖技能列表
+    const currentUnlockedSkills = new Set(
+      playerData.classProgress?.[currentClass.id]?.unlockedSkills || []
+    );
+
+    // 將新技能加入集合中 (Set 會自動去除重複項目)
+    classProgression?.unlockedSkills.forEach(skillId => {
+      currentUnlockedSkills.add(skillId);
+    });
+
+    // 建立新的玩家資料
+    const newPlayer = {
+      ...playerData,
+      characterStats: finalStats,
+      classProgress: {
+        ...playerData.classProgress,
+        [currentClass.id]: {
+          ...playerData.classProgress?.[currentClass.id],
+          unlockedSkills: Array.from(currentUnlockedSkills)
+        }
+      }
+    };
+
+    // 根據 doUpdate 決定是更新還是返回
+    if (doUpdate) {
+      onPlayerChange?.(newPlayer);
+    } else {
+      return newPlayer;
+    }
+  },[playerData, currentClass, onPlayerChange]);
+
   /**
    * 增加經驗值並處理升級
    */
@@ -175,21 +256,15 @@ export const useGameData = (
 
       // 如果升級了才計算新的屬性值
       if (newLevel > characterStats.level) {
-        const newStats = calculateStatGrowth(
-          currentClass.baseStats,
-          currentClass.growthStats,
-          newLevel
-        );
-
+        const newPlayer = updatePlayerByLevel(newLevel,false);
         return {
-          ...playerData,
-          characterStats:{
-            ...characterStats,
-            ...newStats,
+          ...newPlayer,
+          characterStats: {
+            ...newPlayer.characterStats,
             experience: newExp,
-            nextLevelExp: newNextLevelExp
           }
-        };
+        }
+        
       }
 
       // 沒升級就只更新經驗值
@@ -204,7 +279,7 @@ export const useGameData = (
     })();
 
     onPlayerChange?.(newStats);
-  }, [playerData, currentClass, onPlayerChange]);
+  }, [playerData, currentClass, onPlayerChange, updatePlayerByLevel]);
 
   /**
    * 將物品添加到背包
@@ -530,6 +605,7 @@ export const useGameData = (
     // 角色狀態相關
     updateCurrentHealth,
     updateCurrentMana,
+    updatePlayerByLevel,
   
     // 背包相關
     addToInventory,

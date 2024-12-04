@@ -46,6 +46,8 @@ export const GameProvider = ({ children }) => {
 	 */
 	const handleTutorialComplete = (name, classId) => {
 		const newSave = createNewPlayer(name, classId);
+		// TODO 此處初始化無法根據等級計算能力值
+		// gameData.updatePlayerByLevel(1);
 		// gameData.initializePlayerData(newSave.player);
 	};
 
