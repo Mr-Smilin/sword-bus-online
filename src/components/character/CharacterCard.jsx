@@ -169,7 +169,7 @@ export const CharacterCard = () => {
 											>
 												<Star size={16} />
 												<Typography variant="body2">
-													等級 {characterStats?.level || 1}
+													等級 {characterStats?.level}
 												</Typography>
 											</Box>
 										</Grid>

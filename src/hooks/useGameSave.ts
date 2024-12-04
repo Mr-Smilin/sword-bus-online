@@ -112,14 +112,14 @@ export const useGameSave = () => {
         characterStats: {
           level: 0,
           experience: 0,
-          nextLevelExp: 100,
-          health: 100,
-          currentHealth: 100,
-          mana: 100,
-          currentMana: 100,
-          strength: 10,
-          dexterity: 10,
-          intelligence: 10
+          nextLevelExp: 10,
+          health: 1,
+          currentHealth: 1,
+          mana: 1,
+          currentMana: 1,
+          strength: 1,
+          dexterity: 1,
+          intelligence: 1
         },
         inventory: [],
         equipped: {},
