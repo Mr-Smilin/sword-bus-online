@@ -92,6 +92,10 @@ const MainContent = () => {
 						border: 1,
 						borderColor: "divider",
 						borderRadius: 1,
+						maxHeight: "calc(100vh - 180px)", // 減去 header 的高度
+						overflow: "hidden", // 防止內容溢出
+						display: "flex", // 使用 flex 布局
+						flexDirection: "column",
 					}}
 				>
 					{mainViewContent}
@@ -109,6 +113,10 @@ const MainContent = () => {
 							xs: "2",
 							sm: "1",
 						},
+						maxHeight: {
+							sm: "calc(50vh - 40px)", // 分配一半的視窗高度
+						},
+						overflow: "hidden",
 					}}
 				>
 					{characterInfoContent}
@@ -129,6 +137,10 @@ const MainContent = () => {
 							},
 							minHeight: "200px",
 							bgcolor: "background.paper",
+							maxHeight: {
+								sm: "calc(50vh - 40px)", // 分配另一半的視窗高度
+							},
+							overflow: "hidden",
 						}}
 					>
 						{sidePanelContent}

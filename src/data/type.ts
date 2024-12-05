@@ -31,10 +31,8 @@ export interface PlayerData {
   equipped: {                    // 已裝備物品
     weapon?: string;            // 武器ID
   };
-  locationData: {
-    currentFloorId: number;     // 樓層ID
-    currentAreaId: string;      // 區域ID
-  };
+  locationData: LocationData;   // 位置資料
+  mapSaveData: MapSaveData;     // 地圖資料
   createdAt: number;            // 創建時間
   lastLoginAt: number;          // 最後登入時間
 }
@@ -351,11 +349,38 @@ export interface AreaProgress {
   dungeonExploration?: number; // 迷宮專屬: 當前地域探索度
 }
 
-// 地圖存檔資料
-export interface MapSaveData {
-  currentFloor: number;           // 當前樓層
-  currentArea: string;           // 當前區域ID
-  areaProgress: Record<string, AreaProgress>;  // 各區域探索進度
-  unlockedAreas: string[];      // 已解鎖的區域ID
-  defeatedBosses: string[];     // 已擊敗的BOSS ID
-}
+/**
+* 玩家當前位置資料
+*/
+export interface LocationData {
+  /** 當前所在樓層ID */
+  currentFloorId: number;
+  /** 當前所在區域ID */
+  currentAreaId: string;
+ }
+ 
+ /**
+ * 地圖進度相關資料
+ */
+ export interface MapSaveData {
+  /** 每個區域的探索進度 */
+  areaProgress: Record<string, AreaProgress>;
+ 
+  /** 已解鎖的區域ID列表
+   * 初始只有新手村(f1-town)
+   * 之後透過達成條件(例如打敗BOSS)來解鎖其他區域
+   */
+  unlockedAreas: string[];
+ 
+  /** 已擊敗的BOSS ID列表
+   * 用於檢查是否可以切換樓層或解鎖新區域
+   */
+  defeatedBosses: string[];
+ 
+  /** 迷宮探索度上限
+   * key: 迷宮區域ID
+   * value: 當前允許的最高探索度
+   * 超過上限就無法繼續探索，需要重置迷宮
+   */
+  maxDungeonProgress: Record<string, number>;
+ }

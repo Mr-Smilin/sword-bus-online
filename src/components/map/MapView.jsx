@@ -7,15 +7,15 @@ import { useMap } from "../../contexts/MapContext";
 import { useGame } from "../../contexts/GameContext";
 import { useLayout } from "../../contexts";
 
-// 地圖容器 - 使用羊皮紙風格
+// 地圖容器
 const MapContainer = styled(Paper)(({ theme }) => ({
 	position: "relative",
 	width: "100%",
 	aspectRatio: "16/9",
-	backgroundColor: "#f4d03f", // 羊皮紙底色
+	backgroundColor: "#f4d03f",
 	backgroundImage: `
-    radial-gradient(circle at 100% 150%, #f4d03f 24%, #fdeaa8 25%, #fdeaa8 28%, #f4d03f 29%, #f4d03f 36%, #fdeaa8 36%, #fdeaa8 40%, transparent 40%, transparent),
-    radial-gradient(circle at 0    150%, #f4d03f 24%, #fdeaa8 25%, #fdeaa8 28%, #f4d03f 29%, #f4d03f 36%, #fdeaa8 36%, #fdeaa8 40%, transparent 40%, transparent)`,
+	  radial-gradient(circle at 100% 150%, #f4d03f 24%, #fdeaa8 25%, #fdeaa8 28%, #f4d03f 29%, #f4d03f 36%, #fdeaa8 36%, #fdeaa8 40%, transparent 40%, transparent),
+	  radial-gradient(circle at 0    150%, #f4d03f 24%, #fdeaa8 25%, #fdeaa8 28%, #f4d03f 29%, #f4d03f 36%, #fdeaa8 36%, #fdeaa8 40%, transparent 40%, transparent)`,
 	backgroundSize: "100px 50px",
 	padding: theme.spacing(4),
 	boxShadow: "inset 0 0 20px rgba(0,0,0,0.2)",
@@ -34,7 +34,9 @@ const MapContainer = styled(Paper)(({ theme }) => ({
 	},
 }));
 
-// 區域標記點
+/**
+ * 區域標記點
+ */
 const AreaMarker = styled(Box, {
 	shouldForwardProp: (prop) =>
 		prop !== "isLocked" && prop !== "isActive" && prop !== "areaType",
@@ -63,7 +65,9 @@ const AreaMarker = styled(Box, {
 	},
 }));
 
-// 玩家標記
+/**
+ * 玩家標記
+ */
 const PlayerMarker = styled("div")(({ theme }) => ({
 	position: "absolute",
 	width: 16,
@@ -97,12 +101,14 @@ const PlayerMarker = styled("div")(({ theme }) => ({
 	},
 }));
 
-// 路徑連接線
+/**
+ * 路徑連接線
+ */
 const ConnectionPath = styled("div")(({ theme }) => ({
 	position: "absolute",
 	height: 2,
 	backgroundColor: theme.palette.divider,
-	transformOrigin: "left center", // 改變變形的原點
+	transformOrigin: "left center",
 	zIndex: 1,
 	"&::after": {
 		content: '""',
@@ -116,125 +122,73 @@ const ConnectionPath = styled("div")(({ theme }) => ({
 	},
 }));
 
+/**
+ * 地圖視圖組件
+ */
 const MapView = () => {
+	// 取得地圖相關狀態和方法
 	const {
 		currentFloor,
 		currentArea,
 		isMoving,
 		moveToArea,
-		moveProgress,
-		travelInfo,
 		calculateTravelTime,
+		canMoveToArea,
+		unlockedAreas,
 	} = useMap();
-	const { areaProgress } = useGame();
+
 	const { layoutActions } = useLayout();
 
-	// 確認視窗的狀態
+	// 確認對話框狀態
 	const [confirmDialog, setConfirmDialog] = useState({
 		open: false,
 		targetArea: null,
-		estimatedTime: 0,
 	});
 
-	// 計算兩點間的連線角度和長度
+	/**
+	 * 計算兩點間的連線角度和長度
+	 */
 	const calculateConnection = (start, end) => {
-		// 計算實際的寬高比例
 		const ASPECT_RATIO = 9 / 16;
-		// 根據寬高比例調整座標
 		const dx = end.x - start.x;
 		const dy = (end.y - start.y) * ASPECT_RATIO;
-
-		// 計算實際距離和角度
 		const distance = Math.sqrt(dx * dx + dy * dy);
 		const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
 		return { distance, angle };
 	};
 
-	// 檢查區域鎖定狀態，返回具體原因
-	const getAreaLockReason = (area) => {
-		// 檢查是否在可連接範圍
-		if (!currentArea.connections.includes(area.id)) {
-			return {
-				isLocked: true,
-				reason: "無法直接到達此區域",
-				type: "connection",
-			};
-		}
-
-		// 檢查探索度要求
-		if (area.requiredExploration) {
-			const progress = areaProgress?.[area.id];
-			if (!progress || progress.maxExploration < area.requiredExploration) {
-				return {
-					isLocked: true,
-					reason: `需要探索度: ${area.requiredExploration}`,
-					type: "exploration",
-				};
-			}
-		}
-
-		return {
-			isLocked: false,
-			reason: null,
-			type: null,
-		};
-	};
-
-	// 檢查區域是否已解鎖
-	const isAreaLocked = (area) => {
-		return getAreaLockReason(area).isLocked;
-	};
-
-	// 區域點擊處理
+	/**
+	 * 處理區域點擊
+	 */
 	const handleAreaClick = (area) => {
 		if (isMoving) return;
 
-		// 如果不在連接列表中，顯示無法直接到達的提示
-		if (!currentArea.connections.includes(area.id)) {
-			// 可以使用 Material-UI 的 Snackbar 或 其他提示組件
-			return;
-		}
+		// 檢查是否可以移動
+		if (!canMoveToArea(area.id)) return;
 
-		// 檢查探索度要求
-		if (area.requiredExploration) {
-			const progress = areaProgress?.[area.id];
-			if (!progress || progress.maxExploration < area.requiredExploration) {
-				return;
-			}
-		}
-
-		// 計算移動時間並打開確認視窗
-		const time = calculateTravelTime(currentArea, area);
 		setConfirmDialog({
 			open: true,
 			targetArea: area,
-			estimatedTime: time,
 		});
 	};
 
-	// 處理確認移動
+	/**
+	 * 處理確認移動
+	 */
 	const handleConfirmTravel = () => {
 		const { targetArea } = confirmDialog;
-		setConfirmDialog((prev) => ({ ...prev, open: false }));
+		setConfirmDialog({ open: false, targetArea: null });
+
 		// 先關閉地圖面板
 		layoutActions.switchPanel("character");
 		// 然後開始移動
 		moveToArea(targetArea.id);
 	};
 
-	// 處理取消移動
-	const handleCancelTravel = () => {
-		setConfirmDialog({
-			open: false,
-			targetArea: null,
-			estimatedTime: 0,
-		});
-	};
-
 	return (
 		<>
-			<MapContainer className="map-container">
+			<MapContainer>
 				{/* 繪製連接路徑 */}
 				{currentFloor.areas.map((area) =>
 					area.connections.map((targetId) => {
@@ -263,61 +217,42 @@ const MapView = () => {
 				)}
 
 				{/* 繪製區域標記 */}
-				{currentFloor.areas.map((area) => (
-					<Tooltip
-						key={area.id}
-						title={
-							<Box>
-								<Typography variant="subtitle2">{area.name}</Typography>
-								<Typography variant="body2">{area.description}</Typography>
-								{(() => {
-									const lockStatus = getAreaLockReason(area);
-									if (lockStatus.isLocked) {
-										return (
-											<Typography
-												variant="caption"
-												color={
-													lockStatus.type === "connection"
-														? "warning.main"
-														: "error"
-												}
-											>
-												{lockStatus.reason}
-											</Typography>
-										);
-									}
-									return null;
-								})()}
-							</Box>
-						}
-						PopperProps={{
-							// 確保 Popper 不會擋住互動
-							modifiers: [
-								{
-									name: "offset",
-									options: {
-										offset: [0, 12], // 調整 Tooltip 的偏移
-									},
-								},
-							],
-						}}
-					>
-						<Box
-							sx={{
-								position: "absolute",
-								left: `${area.position.x}%`,
-								top: `${area.position.y}%`,
-							}}
+				{currentFloor.areas.map((area) => {
+					const isLocked = !unlockedAreas.includes(area.id);
+
+					return (
+						<Tooltip
+							key={area.id}
+							title={
+								<Box>
+									<Typography variant="subtitle2">{area.name}</Typography>
+									<Typography variant="body2">{area.description}</Typography>
+									{isLocked && (
+										<Typography variant="caption" color="error">
+											尚未解鎖此區域
+										</Typography>
+									)}
+								</Box>
+							}
+							arrow
 						>
-							<AreaMarker
-								isLocked={isAreaLocked(area)}
-								isActive={area.id === currentArea.id}
-								areaType={area.type}
-								onClick={() => handleAreaClick(area)}
-							/>
-						</Box>
-					</Tooltip>
-				))}
+							<Box
+								sx={{
+									position: "absolute",
+									left: `${area.position.x}%`,
+									top: `${area.position.y}%`,
+								}}
+							>
+								<AreaMarker
+									isLocked={isLocked}
+									isActive={area.id === currentArea.id}
+									areaType={area.type}
+									onClick={() => handleAreaClick(area)}
+								/>
+							</Box>
+						</Tooltip>
+					);
+				})}
 
 				{/* 玩家位置標記 */}
 				<PlayerMarker
@@ -328,14 +263,18 @@ const MapView = () => {
 				/>
 			</MapContainer>
 
-			{/* 確認視窗 */}
+			{/* 確認對話框 */}
 			<TravelConfirmDialog
 				open={confirmDialog.open}
 				fromArea={currentArea}
 				toArea={confirmDialog.targetArea}
-				estimatedTime={confirmDialog.estimatedTime}
+				estimatedTime={
+					confirmDialog.targetArea
+						? calculateTravelTime(currentArea, confirmDialog.targetArea)
+						: 0
+				}
 				onConfirm={handleConfirmTravel}
-				onCancel={handleCancelTravel}
+				onCancel={() => setConfirmDialog({ open: false, targetArea: null })}
 			/>
 		</>
 	);

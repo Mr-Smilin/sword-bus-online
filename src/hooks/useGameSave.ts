@@ -47,6 +47,7 @@ export const useGameSave = () => {
 
   /**
    * 儲存遊戲資料
+   * @param {GameSaveData} data - 要儲存的資料
    */
   const saveGameData = (data: GameSaveData) => {
     try {
@@ -59,6 +60,7 @@ export const useGameSave = () => {
 
   /**
    * 更新玩家資料
+   * @param {Partial<PlayerData>} updates - 要更新的玩家資料欄位
    */
   const updatePlayerData = (updates: Partial<PlayerData>) => {
     if (!saveData) return;
@@ -77,8 +79,10 @@ export const useGameSave = () => {
 
   /**
    * 更新事件資料
+   * @param {string} eventId - 事件ID
+   * @param {Partial<GameEventData>} data - 要更新的事件資料
    */
-  const updateEventData = (eventId: string, data: any) => {
+  const updateEventData = (eventId: string, data: Partial<GameEventData>) => {
     if (!saveData) return;
 
     const updatedSave = {
@@ -95,8 +99,11 @@ export const useGameSave = () => {
     saveGameData(updatedSave);
   };
 
-  /**
+ /**
    * 創建新玩家
+   * @param {string} name - 角色名稱
+   * @param {string} classId - 職業ID
+   * @returns {GameSaveData} 新的存檔資料
    */
   const createNewPlayer = (name: string, classId: string): GameSaveData => {
     const newSave: GameSaveData = {
@@ -123,9 +130,17 @@ export const useGameSave = () => {
         },
         inventory: [],
         equipped: {},
-        locationData: {
+         // 初始位置資料
+         locationData: {
           currentFloorId: 1,
           currentAreaId: 'f1-town'
+        },
+        // 初始地圖資料
+        mapSaveData: {
+          areaProgress: {},
+          unlockedAreas: ['f1-town'],
+          defeatedBosses: [],
+          maxDungeonProgress: {}
         },
         createdAt: Date.now(),
         lastLoginAt: Date.now()

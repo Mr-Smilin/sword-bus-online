@@ -1,10 +1,4 @@
-import React, {
-	createContext,
-	useContext,
-	useCallback,
-	useState,
-	useEffect,
-} from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import { useGameSave } from "../hooks/useGameSave";
 import { useGameData } from "../hooks/useGameData";
 import { MapProvider } from "./MapContext";
@@ -17,8 +11,11 @@ import TutorialModal from "../components/tutorial/TutorialModal";
 const GameContext = createContext(null);
 
 /**
- * 遊戲狀態提供者組件
- * 管理遊戲的核心狀態和邏輯
+ * 遊戲核心狀態管理器
+ * 負責：
+ * 1. 玩家核心資料管理
+ * 2. 遊戲事件追蹤
+ * 3. 存檔系統整合
  */
 export const GameProvider = ({ children }) => {
 	// 遊戲存檔管理
@@ -45,87 +42,28 @@ export const GameProvider = ({ children }) => {
 	 * @param {string} classId - 職業ID
 	 */
 	const handleTutorialComplete = (name, classId) => {
-		const newSave = createNewPlayer(name, classId);
-		// TODO 此處初始化無法根據等級計算能力值
-		// gameData.updatePlayerByLevel(1);
-		// gameData.initializePlayerData(newSave.player);
+		createNewPlayer(name, classId);
 	};
-
-	// 初始化探索進度
-	const [areaProgress, setAreaProgress] = useState(() => {
-		// 如果有存檔就用存檔的資料，否則建立初始資料
-		return (
-			saveData?.areaProgress || {
-				"f1-town": { currentExploration: 0, maxExploration: 0 },
-				"f1-wild-east": { currentExploration: 0, maxExploration: 0 },
-				"f1-wild-west": { currentExploration: 0, maxExploration: 0 },
-				"f1-dungeon": { currentExploration: 0, maxExploration: 0 },
-			}
-		);
-	});
-
-	/**
-	 * 更新探索進度
-	 */
-	const updateAreaProgress = useCallback((areaId, progress) => {
-		setAreaProgress((prev) => ({
-			...prev,
-			[areaId]: progress,
-		}));
-	}, []);
-
-	// 位置相關的資料存檔結構
-	const [locationData, setLocationData] = useState({
-		currentFloorId: 1,
-		currentAreaId: "f1-town",
-	});
-
-	// 當存檔資料更新時，更新位置資料
-	useEffect(() => {
-		if (saveData?.player?.locationData) {
-			setLocationData(saveData.player.locationData);
-		}
-	}, [saveData]);
-
-	/**
-	 * 更新位置資料
-	 */
-	const updateLocationData = useCallback(
-		(newLocationData) => {
-			setLocationData((prevData) => {
-				const updatedData = { ...prevData, ...newLocationData };
-				// 更新存檔
-				updatePlayerData({
-					locationData: updatedData,
-				});
-				return updatedData;
-			});
-		},
-		[updatePlayerData]
-	);
 
 	/**
 	 * 整合所有遊戲相關的狀態和方法
 	 */
-	const contextValue = {
-		// 存檔狀態
-		player: saveData?.player || null,
-		isNewPlayer: !saveData,
-		eventData: saveData?.events || {},
+	const contextValue = useMemo(
+		() => ({
+			// 玩家狀態
+			player: saveData?.player || null,
+			isNewPlayer: !saveData,
+			eventData: saveData?.events || {},
 
-		// 探索相關
-		areaProgress,
-		locationData,
+			// 從 useGameData 取得的核心功能
+			...gameData,
 
-		// 核心遊戲數據和方法
-		...gameData,
-
-		// 存檔操作方法
-		updatePlayerData,
-		updateEventData,
-		updateAreaProgress,
-		updateLocationData,
-	};
+			// 存檔相關方法
+			updatePlayerData,
+			updateEventData,
+		}),
+		[saveData, gameData, updatePlayerData, updateEventData]
+	);
 
 	/**
 	 * 如果沒有存檔，顯示新手引導
