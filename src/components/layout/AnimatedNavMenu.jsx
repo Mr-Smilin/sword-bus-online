@@ -84,6 +84,14 @@ const NavMenu = styled("nav")(({ theme }) => ({
 	position: "fixed",
 	left: 23,
 	bottom: 100,
+	opacity: 0,
+	visibility: "hidden",
+	transition: "opacity 1s ease, visibility 0s linear 1s",
+	"&.show": {
+		opacity: 1,
+		visibility: "visible",
+		transition: "opacity 1s ease, visibility 0s",
+	},
 	"& ul": {
 		listStyle: "none",
 		padding: 0,

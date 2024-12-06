@@ -199,12 +199,7 @@ const TownInteractions = () => {
 						>
 							{/* 設施主按鈕區域 */}
 							<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-								<Tooltip
-									title={
-										facility.disabled ? facility.tooltip : facility.description
-									}
-									arrow
-								>
+								<Tooltip title={facility.tooltip} arrow>
 									<span>
 										<Button
 											variant="outlined"
