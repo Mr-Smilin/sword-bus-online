@@ -41,31 +41,51 @@ import QuickFloorSwitch from "./QuickFloorSwitch";
  * 為網格項目添加平滑的過渡動畫效果
  */
 const AnimatedGridItem = styled(Grid)(({ theme, expanded }) => ({
-	transition: theme.transitions.create(["width", "flex-basis"], {
-		duration: theme.transitions.duration.standard,
-		easing: theme.transitions.easing.easeInOut,
-	}),
-	...(expanded && {
-		flexBasis: "100% !important",
-		maxWidth: "100% !important",
-	}),
+	position: "relative",
+	minHeight: theme.spacing(12),
+	// transition: theme.transitions.create(["width", "flex-basis"], {
+	// 	duration: theme.transitions.duration.standard,
+	// 	easing: theme.transitions.easing.easeInOut,
+	// }),
+	// ...(expanded && {
+	// 	flexBasis: "100% !important",
+	// 	maxWidth: "100% !important",
+	// }),
 }));
 
 /**
  * 自定義動畫紙張容器組件
  * 為容器添加縮放和陰影的過渡效果
  */
-const AnimatedPaper = styled(Paper)(({ theme }) => ({
-	transition: theme.transitions.create(
-		["transform", "box-shadow", "height", "background-color"],
-		{
-			duration: theme.transitions.duration.standard,
-			easing: theme.transitions.easing.easeInOut,
-		}
-	),
+const AnimatedPaper = styled(Paper)(({ theme, expanded, disabled }) => ({
+	padding: theme.spacing(2),
+	border: 1,
+	borderColor: theme.palette.divider,
+	backgroundColor: theme.palette.background.paper,
 	height: "100%",
-	display: "flex",
-	flexDirection: "column",
+	transform: "translateY(0)",
+	...(expanded && {
+		position: "absolute",
+		zIndex: 1,
+		height: `auto`,
+		width: `calc(100% - ${theme.spacing(2)})`,
+		top: theme.spacing(2),
+		right: 0,
+	}),
+	"&:hover": {
+		borderColor: disabled ? theme.palette.divider : theme.palette.primary.main,
+	},
+}));
+
+/**
+ * 自定義簡介
+ * 避免收合的時候撐高整行的高度
+ */
+const AnimatedCollapse = styled(Collapse)(({ theme, expanded }) => ({
+	width: "100%",
+	...(!expanded && {
+		transition: "none !important",
+	}),
 }));
 
 /**
@@ -200,6 +220,7 @@ const TownInteractions = () => {
 					overflow: "auto",
 					px: 2,
 					mr: -2,
+					pb: 5,
 				}}
 			>
 				<Box sx={{ py: 2 }}>
@@ -223,27 +244,20 @@ const TownInteractions = () => {
 								sm={6} // 平板一行兩個
 								md={4} // 桌面版一行三個
 								lg={3} // 大螢幕一行四個
+								// expanded={expandedId === facility.id}
 							>
 								{/* 設施卡片 */}
 								<AnimatedPaper
 									onMouseEnter={() => setExpandedId(facility.id)}
 									onMouseLeave={() => setExpandedId(null)}
+									onClick={() =>
+										setExpandedId((prev) =>
+											prev === facility.id ? null : facility.id
+										)
+									}
 									elevation={expandedId === facility.id ? 4 : 1}
-									sx={{
-										p: 2,
-										border: 1,
-										borderColor: "divider",
-										bgcolor: "background.paper",
-										transform:
-											expandedId === facility.id
-												? "translateY(2px)"
-												: "translateY(0)",
-										"&:hover": {
-											borderColor: facility.disabled
-												? "divider"
-												: "primary.main",
-										},
-									}}
+									expanded={expandedId === facility.id}
+									disabled={facility.disabled}
 								>
 									{/* 設施內容容器 */}
 									<Box
@@ -278,9 +292,9 @@ const TownInteractions = () => {
 										</Tooltip>
 
 										{/* 展開的詳細資訊 */}
-										<Collapse
+										<AnimatedCollapse
 											in={expandedId === facility.id}
-											sx={{ width: "100%" }}
+											expanded={expandedId === facility.id}
 										>
 											{/* 額外的組件（如快速樓層切換）*/}
 											{facility.renderExtra?.({
@@ -298,7 +312,7 @@ const TownInteractions = () => {
 													{facility.description}
 												</Typography>
 											</Box>
-										</Collapse>
+										</AnimatedCollapse>
 									</Box>
 								</AnimatedPaper>
 							</AnimatedGridItem>
