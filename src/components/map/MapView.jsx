@@ -68,31 +68,30 @@ const AreaMarker = styled(Box, {
 /**
  * 玩家標記
  */
-const PlayerMarker = styled("div")(({ theme }) => ({
-	position: "absolute",
-	width: 16,
-	height: 16,
-	backgroundColor: theme.palette.warning.main,
-	borderRadius: "50%",
-	transform: "translate(-50%, -50%)",
-	boxShadow: "0 0 10px rgba(0,0,0,0.3)",
+const PlayerMarker = styled(AreaMarker)(({ theme }) => ({
+	backgroundColor: theme.palette.info.main,
+	boxShadow: `0 0 15px ${theme.palette.info.main}`,
+	border: `2px solid ${theme.palette.background.paper}`,
 	zIndex: 10,
+
+	// 外圈動畫
 	"&::after": {
 		content: '""',
 		position: "absolute",
 		top: "50%",
 		left: "50%",
-		width: 24,
-		height: 24,
-		border: `2px solid ${theme.palette.warning.main}`,
+		width: 36,
+		height: 36,
+		border: `2px solid ${theme.palette.info.main}`,
 		borderRadius: "50%",
 		transform: "translate(-50%, -50%)",
-		animation: "pulse 1.5s infinite",
+		animation: "pulseOuter 2s infinite",
 	},
-	"@keyframes pulse": {
+
+	"@keyframes pulseOuter": {
 		"0%": {
-			transform: "translate(-50%, -50%) scale(1)",
-			opacity: 1,
+			transform: "translate(-50%, -50%) scale(0.9)",
+			opacity: 0.8,
 		},
 		"100%": {
 			transform: "translate(-50%, -50%) scale(1.5)",
@@ -131,6 +130,7 @@ const MapView = () => {
 		currentFloor,
 		currentArea,
 		isMoving,
+		areaProgress,
 		moveToArea,
 		calculateTravelTime,
 		canMoveToArea,
@@ -156,6 +156,50 @@ const MapView = () => {
 		const angle = Math.atan2(dy, dx) * (180 / Math.PI);
 
 		return { distance, angle };
+	};
+
+	// 檢查區域鎖定狀態，返回具體原因
+	const getAreaLockReason = (area) => {
+		// 檢查探索度要求
+		if (area.requiredExploration) {
+			const progress = areaProgress?.[area.id];
+			if (!progress || progress.maxExploration < area.requiredExploration) {
+				return {
+					isLocked: true,
+					reason: `需要探索度: ${area.requiredExploration}`,
+					type: "exploration",
+				};
+			}
+		}
+
+		// 檢查是否已解鎖
+		if (!unlockedAreas.includes(area.id)) {
+			return {
+				isLocked: true,
+				reason: "該區域尚未解鎖",
+				type: "unlock",
+			};
+		}
+
+		// 檢查是否在可連接範圍
+		if (!currentArea.connections.includes(area.id)) {
+			return {
+				isLocked: true,
+				reason: "與該地區沒有相連",
+				type: "connection",
+			};
+		}
+
+		return {
+			isLocked: false,
+			reason: null,
+			type: null,
+		};
+	};
+
+	// 檢查區域是否已解鎖
+	const isAreaLocked = (area) => {
+		return getAreaLockReason(area).isLocked;
 	};
 
 	/**
@@ -218,7 +262,7 @@ const MapView = () => {
 
 				{/* 繪製區域標記 */}
 				{currentFloor.areas.map((area) => {
-					const isLocked = !unlockedAreas.includes(area.id);
+					const lockStatus = getAreaLockReason(area);
 
 					return (
 						<Tooltip
@@ -227,13 +271,25 @@ const MapView = () => {
 								<Box>
 									<Typography variant="subtitle2">{area.name}</Typography>
 									<Typography variant="body2">{area.description}</Typography>
-									{isLocked && (
+									{lockStatus.isLocked && (
 										<Typography variant="caption" color="error">
-											尚未解鎖此區域
+											{lockStatus.reason}
 										</Typography>
 									)}
 								</Box>
 							}
+							placement="bottom"
+							PopperProps={{
+								// 確保 Popper 不會擋住互動
+								modifiers: [
+									{
+										name: "offset",
+										options: {
+											offset: [0, 12], // 調整 Tooltip 的偏移
+										},
+									},
+								],
+							}}
 							arrow
 						>
 							<Box
@@ -244,7 +300,7 @@ const MapView = () => {
 								}}
 							>
 								<AreaMarker
-									isLocked={isLocked}
+									isLocked={lockStatus.isLocked}
 									isActive={area.id === currentArea.id}
 									areaType={area.type}
 									onClick={() => handleAreaClick(area)}

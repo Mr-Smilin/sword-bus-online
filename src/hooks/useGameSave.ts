@@ -138,8 +138,8 @@ export const useGameSave = () => {
         // 初始地圖資料
         mapSaveData: {
           areaProgress: {},
-          unlockedAreas: ['f1-town'],
-          defeatedBosses: [],
+          unlockedAreas: ['f1-town','f1-wild-east','f1-wild-west','f1-dungeon','f2-town','f2-wild'],
+          defeatedBosses: ['f1-dungeon-boss'],
           maxDungeonProgress: {}
         },
         createdAt: Date.now(),
