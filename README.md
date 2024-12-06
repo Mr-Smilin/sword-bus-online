@@ -8,12 +8,44 @@
     ├── App.js
     ├── App.test.js
     ├── components
+    │   ├── character
+    │   │   ├── CharacterCard.jsx
+    │   │   ├── CharacterPanel.jsx
+    │   │   ├── index.jsx
+    │   │   └── ProfessionTab.jsx
     │   ├── GameLayout.jsx
+    │   ├── layout
+    │   │   ├── AnimatedNavMenu.jsx
+    │   │   ├── AppHeader.jsx
+    │   │   ├── MainContent.jsx
+    │   │   └── StyledComponents.jsx
     │   ├── login
     │   │   └── Login.jsx
-    │   └── ThemeToggle.jsx
+    │   ├── main-view
+    │   │   ├── ExplorationPanel.jsx
+    │   │   ├── index.js
+    │   │   └── MainView.jsx
+    │   ├── map
+    │   │   ├── MapView.jsx
+    │   │   ├── TravelConfirmDialog.jsx
+    │   │   └── TravelProgress.jsx
+    │   ├── panels
+    │   │   ├── HelpPanel.jsx
+    │   │   └── MapPanel.jsx
+    │   ├── ThemeToggle.jsx
+    │   ├── town
+    │   │   ├── FloorSwitchDialog.jsx
+    │   │   ├── QuickFloorSwitch.jsx
+    │   │   └── TownInteractions.jsx
+    │   └── tutorial
+    │       └── TutorialModal.tsx
+    ├── constants
+    │   └── helpContent.js
     ├── contexts
-    │   └── GameContext.jsx
+    │   ├── GameContext.jsx
+    │   ├── index.js
+    │   ├── LayoutContext.jsx
+    │   └── MapContext.jsx
     ├── data
     │   ├── classes
     │   │   ├── agility.ts
@@ -23,6 +55,8 @@
     │   │   └── support.ts
     │   ├── item
     │   │   └── index.ts
+    │   ├── maps
+    │   │   └── mapDefinitions.ts
     │   ├── skills
     │   │   ├── archer.ts
     │   │   ├── index.ts
@@ -33,6 +67,7 @@
     │       └── index.ts
     ├── hooks
     │   ├── useGameData.ts
+    │   ├── useGameSave.ts
     │   ├── useModalPanel.js
     │   └── useThemeTransition.js
     ├── index.css
@@ -41,5 +76,8 @@
     ├── setupTests.js
     ├── styles
     │   └── transitions.css
-    └── theme.js
+    ├── theme.js
+    ├── tree.js
+    └── utils
+        └── animations.js
 ```
