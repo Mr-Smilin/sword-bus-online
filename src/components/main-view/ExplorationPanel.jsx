@@ -123,6 +123,9 @@ const ExplorationPanel = () => {
 					flex: 1,
 					overflow: "auto",
 					px: 2,
+					// 滾動陰影效果
+					maskImage: "linear-gradient(to bottom, black 90%, transparent)",
+					WebkitMaskImage: "linear-gradient(to bottom, black 90%, transparent)",
 				}}
 			>
 				{renderAreaContent()}

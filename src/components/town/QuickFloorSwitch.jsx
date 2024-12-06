@@ -13,7 +13,9 @@ const QuickFloorSwitch = ({ onFloorSelect }) => {
 	};
 
 	return (
-		<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+		<Box
+			sx={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 2 }}
+		>
 			<Tooltip
 				title={
 					!adjacentFloors.down

@@ -1,3 +1,7 @@
+/**
+ * @file TownInteractions.jsx
+ * @description 城鎮設施交互組件，負責展示和處理城鎮內所有可用的設施
+ */
 import React, { useState } from "react";
 import {
 	Box,
@@ -10,9 +14,11 @@ import {
 	DialogContent,
 	DialogActions,
 	Typography,
+	Grid,
 } from "@mui/material";
+import { styled } from "@mui/material/styles";
 
-// 引入所需圖標
+// 引入圖標
 import {
 	Building2, // 樓層切換圖標
 	Store, // 商店圖標
@@ -24,21 +30,47 @@ import {
 	Mail, // 郵件圖標
 } from "lucide-react";
 
-// 引入所需的 context 和組件
+// 引入必要的 context 和組件
 import { useMap } from "../../contexts/MapContext";
 import { floors } from "../../data/maps/mapDefinitions";
 import FloorSwitchDialog from "./FloorSwitchDialog";
 import QuickFloorSwitch from "./QuickFloorSwitch";
 
 /**
+ * 自定義動畫網格項目組件
+ * 為網格項目添加平滑的過渡動畫效果
+ */
+const AnimatedGridItem = styled(Grid)(({ theme, expanded }) => ({
+	transition: theme.transitions.create(["width", "flex-basis"], {
+		duration: theme.transitions.duration.standard,
+		easing: theme.transitions.easing.easeInOut,
+	}),
+	...(expanded && {
+		flexBasis: "100% !important",
+		maxWidth: "100% !important",
+	}),
+}));
+
+/**
+ * 自定義動畫紙張容器組件
+ * 為容器添加縮放和陰影的過渡效果
+ */
+const AnimatedPaper = styled(Paper)(({ theme }) => ({
+	transition: theme.transitions.create(
+		["transform", "box-shadow", "height", "background-color"],
+		{
+			duration: theme.transitions.duration.standard,
+			easing: theme.transitions.easing.easeInOut,
+		}
+	),
+	height: "100%",
+	display: "flex",
+	flexDirection: "column",
+}));
+
+/**
  * 城鎮設施配置
- * @property {string} id - 設施唯一標識符
- * @property {string} label - 設施名稱
- * @property {Component} icon - 設施圖標組件
- * @property {string} description - 設施描述
- * @property {boolean} disabled - 是否禁用
- * @property {string} tooltip - 禁用時的提示文字
- * @property {Function} renderExtra - 渲染額外的組件（可選）
+ * 定義所有可用的城鎮設施及其屬性
  */
 const TOWN_FACILITIES = [
 	{
@@ -111,23 +143,33 @@ const TOWN_FACILITIES = [
 
 /**
  * 城鎮互動面板組件
- * 用於展示和管理所有可用的城鎮設施
+ * @returns {JSX.Element} 城鎮互動面板
  */
 const TownInteractions = () => {
 	// 從地圖上下文獲取狀態和方法
 	const { currentFloor, currentArea, changeFloor } = useMap();
 
-	// 組件內部狀態管理
-	const [isExpanded, setIsExpanded] = useState({}); // 控制每個設施的展開狀態
-	const [isDialogOpen, setIsDialogOpen] = useState(false); // 控制樓層選擇對話框
+	// 狀態管理
+	const [expandedId, setExpandedId] = useState(null); // 當前展開的設施ID
+	const [isDialogOpen, setIsDialogOpen] = useState(false); // 樓層選擇對話框狀態
 	const [confirmDialog, setConfirmDialog] = useState({
-		// 控制確認對話框
+		// 確認對話框狀態
 		open: false,
 		targetFloor: null,
 	});
 
 	/**
-	 * 處理樓層切換的確認流程
+	 * 處理樓層切換確認
+	 */
+	const handleConfirmChange = () => {
+		if (confirmDialog.targetFloor) {
+			changeFloor(confirmDialog.targetFloor.id);
+		}
+		setConfirmDialog({ open: false, targetFloor: null });
+	};
+
+	/**
+	 * 處理樓層切換選擇
 	 * @param {number} floorId - 目標樓層ID
 	 */
 	const handleFloorChange = (floorId) => {
@@ -139,111 +181,133 @@ const TownInteractions = () => {
 		setIsDialogOpen(false);
 	};
 
-	/**
-	 * 執行樓層切換
-	 */
-	const handleConfirmChange = () => {
-		if (confirmDialog.targetFloor) {
-			changeFloor(confirmDialog.targetFloor.id);
-		}
-		setConfirmDialog({ open: false, targetFloor: null });
-	};
-
 	// 只在城鎮顯示
 	if (currentArea.type !== "town") return null;
 
 	return (
 		<Box
 			sx={{
-				position: "relative",
 				height: "100%",
-				overflow: "hidden",
 				display: "flex",
 				flexDirection: "column",
+				overflow: "hidden",
 			}}
 		>
 			{/* 可滾動的設施列表容器 */}
 			<Box
 				sx={{
 					flex: 1,
-					overflowY: "auto",
-					pr: 2, // 為滾動條預留空間
-					mr: -2, // 補償 padding-right
-					// 滾動陰影效果
-					maskImage: "linear-gradient(to bottom, black 90%, transparent)",
-					WebkitMaskImage: "linear-gradient(to bottom, black 90%, transparent)",
+					overflow: "auto",
+					px: 2,
+					mr: -2,
 				}}
 			>
-				{/* 設施列表 */}
-				<Box sx={{ display: "flex", flexDirection: "column", gap: 2, pb: 2 }}>
-					{TOWN_FACILITIES.map((facility) => (
-						<Paper
-							key={facility.id}
-							onMouseEnter={() =>
-								setIsExpanded((prev) => ({ ...prev, [facility.id]: true }))
-							}
-							onMouseLeave={() =>
-								setIsExpanded((prev) => ({ ...prev, [facility.id]: false }))
-							}
-							sx={{
-								p: 2,
-								transition: "all 0.3s ease-in-out",
-								border: 1,
-								borderColor: "divider",
-								bgcolor: "background.paper",
-								"&:hover": {
-									boxShadow: 1,
-									borderColor: facility.disabled ? "divider" : "primary.main",
-								},
-							}}
-						>
-							{/* 設施主按鈕區域 */}
-							<Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-								<Tooltip title={facility.tooltip} arrow>
-									<span>
-										<Button
-											variant="outlined"
-											startIcon={<facility.icon size={18} />}
-											disabled={facility.disabled}
-											onClick={() => {
-												if (facility.id === "floors") {
-													setIsDialogOpen(true);
-												}
-												// 其他設施的點擊處理將在後續實現
-											}}
-										>
-											{facility.label}
-										</Button>
-									</span>
-								</Tooltip>
-
-								{/* 渲染額外的組件（如快速樓層切換） */}
-								{facility.renderExtra?.({
-									onFloorSelect: handleFloorChange,
-								})}
-							</Box>
-
-							{/* 展開區域 - 顯示設施詳細信息 */}
-							<Collapse in={Boolean(isExpanded[facility.id])}>
-								<Box
+				<Box sx={{ py: 2 }}>
+					{/* 設施網格布局 */}
+					<Grid
+						container
+						spacing={2}
+						sx={{
+							transition: (theme) =>
+								theme.transitions.create("all", {
+									duration: theme.transitions.duration.standard,
+									easing: theme.transitions.easing.easeInOut,
+								}),
+						}}
+					>
+						{TOWN_FACILITIES.map((facility) => (
+							<AnimatedGridItem
+								item
+								key={facility.id}
+								xs={12} // 手機版一行一個
+								sm={6} // 平板一行兩個
+								md={4} // 桌面版一行三個
+								lg={3} // 大螢幕一行四個
+							>
+								{/* 設施卡片 */}
+								<AnimatedPaper
+									onMouseEnter={() => setExpandedId(facility.id)}
+									onMouseLeave={() => setExpandedId(null)}
+									elevation={expandedId === facility.id ? 4 : 1}
 									sx={{
-										mt: 2,
-										pt: 2,
-										borderTop: 1,
+										p: 2,
+										border: 1,
 										borderColor: "divider",
+										bgcolor: "background.paper",
+										transform:
+											expandedId === facility.id
+												? "translateY(2px)"
+												: "translateY(0)",
+										"&:hover": {
+											borderColor: facility.disabled
+												? "divider"
+												: "primary.main",
+										},
 									}}
 								>
-									<Typography variant="body2" color="text.secondary">
-										{facility.description}
-									</Typography>
-								</Box>
-							</Collapse>
-						</Paper>
-					))}
+									{/* 設施內容容器 */}
+									<Box
+										sx={{
+											display: "flex",
+											flexDirection: "column",
+											flexWrap: "wrap",
+											gap: 2,
+										}}
+									>
+										{/* 設施按鈕 */}
+										<Tooltip title={facility.tooltip} arrow>
+											<span>
+												<Button
+													variant="outlined"
+													startIcon={<facility.icon size={18} />}
+													disabled={facility.disabled}
+													onClick={() => {
+														if (facility.id === "floors") {
+															setIsDialogOpen(true);
+														}
+													}}
+													sx={{
+														justifyContent: "flex-start",
+														whiteSpace: "nowrap",
+														minWidth: "auto",
+													}}
+												>
+													{facility.label}
+												</Button>
+											</span>
+										</Tooltip>
+
+										{/* 展開的詳細資訊 */}
+										<Collapse
+											in={expandedId === facility.id}
+											sx={{ width: "100%" }}
+										>
+											{/* 額外的組件（如快速樓層切換）*/}
+											{facility.renderExtra?.({
+												onFloorSelect: handleFloorChange,
+											})}
+											<Box
+												sx={{
+													pt: 2,
+													mt: 2,
+													borderTop: 1,
+													borderColor: "divider",
+												}}
+											>
+												<Typography variant="body2" color="text.secondary">
+													{facility.description}
+												</Typography>
+											</Box>
+										</Collapse>
+									</Box>
+								</AnimatedPaper>
+							</AnimatedGridItem>
+						))}
+					</Grid>
 				</Box>
 			</Box>
 
-			{/* 樓層選擇對話框 */}
+			{/* 樓層切換對話框 */}
 			<FloorSwitchDialog
 				open={isDialogOpen}
 				onClose={() => setIsDialogOpen(false)}

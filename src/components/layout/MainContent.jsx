@@ -92,7 +92,7 @@ const MainContent = () => {
 						border: 1,
 						borderColor: "divider",
 						borderRadius: 1,
-						maxHeight: "calc(100vh - 180px)", // 減去 header 的高度
+						height: "calc(100vh - 180px)", // 減去 header 的高度
 						overflow: "hidden", // 防止內容溢出
 						display: "flex", // 使用 flex 布局
 						flexDirection: "column",
