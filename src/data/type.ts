@@ -27,7 +27,11 @@ export interface PlayerData {
   characterStats: CharacterStats;// 角色屬性
   currentClassId: string;        // 當前職業ID
   classProgress: Record<string, ClassProgress>;  // 所有職業進度狀態 
-  inventory: string[];           // 背包物品ID列表
+  inventory: {
+    state: InventoryState;          // 背包狀態
+    settings: InventorySettings;     // 背包設定
+    actionHistory: InventoryAction[];// 操作歷史
+  };
   equipped: {                    // 已裝備物品
     weapon?: string;            // 武器ID
   };
@@ -62,13 +66,25 @@ export interface GameSaveData {
  * 物品類型
  * 定義遊戲中所有可能的物品類型
  */
-export type ItemType = 'consumable' | 'material' | 'quest';
+export type ItemType = 
+  | 'weapon'      // 武器
+  | 'armor'       // 防具
+  | 'accessory'   // 配飾
+  | 'consumable'  // 消耗品
+  | 'material'    // 材料
+  | 'quest'       // 任務物品
+  | 'misc';       // 雜物
 
 /**
  * 稀有度類型
  * 定義物品和裝備的稀有程度
  */
-export type RarityType = 'common' | 'uncommon' | 'rare' | 'epic' | 'legendary';
+export type RarityType = 
+  | 'common'     // 普通
+  | 'uncommon'   // 優秀
+  | 'rare'       // 稀有
+  | 'epic'       // 史詩
+  | 'legendary'; // 傳說
 
 /**
  * 遊戲物品介面
@@ -85,7 +101,75 @@ export interface Item {
   effect?: string;           // 物品效果（格式：'效果類型:數值'，例如 'heal:100'）
   value: number;             // 物品價值（遊戲幣）
   weight: number;            // 物品重量（影響角色負重）
-  quantity?: number;         // 堆疊數量，運行時使用，不需要在資料定義中設置
+  usable?: boolean;         // 是否可使用
+  tradable?: boolean;       // 是否可交易
+  destroyable?: boolean;    // 是否可丟棄
+}
+
+/**
+ * 背包格子物品介面
+ * 繼承基礎物品介面，添加背包相關屬性
+ */
+export interface InventoryItem {
+  itemId: string;           // 物品ID
+  quantity: number;         // 當前數量
+  slot: number;            // 所在格子位置
+  locked?: boolean;         // 是否鎖定（防止誤操作）
+}
+
+/**
+ * 背包狀態介面
+ * 定義背包的狀態資訊
+ */
+export interface InventoryState {
+  items: InventoryItem[];   // 當前背包內的物品
+  maxSlots: number;         // 最大格子數量
+}
+
+/**
+ * 背包設定介面
+ * 定義背包的基礎設定
+ */
+export interface InventorySettings {
+  defaultMaxSlots: number;  // 預設最大格子數
+  maxStackByType: {        // 不同類型物品的最大堆疊數
+    consumable: number;    // 消耗品堆疊上限
+    material: number;      // 材料堆疊上限
+    misc: number;         // 雜物堆疊上限
+  };
+}
+
+/**
+ * 背包操作記錄
+ * 用於追蹤背包操作歷史
+ */
+export interface InventoryAction {
+  type: 'add' | 'remove' | 'move' | 'use' | 'split' | 'merge' | 'sort';
+  itemId: string;
+  quantity: number;
+  fromSlot?: number;
+  toSlot?: number;
+  timestamp: number;
+}
+
+/**
+ * 背包查詢過濾器介面
+ */
+export interface InventoryFilter {
+  type?: ItemType[];       // 物品類型過濾
+  rarity?: RarityType[];   // 稀有度過濾
+  name?: string;           // 名稱搜尋
+  minValue?: number;       // 最小價值
+  maxValue?: number;       // 最大價值
+}
+
+/**
+ * 背包拖放操作介面
+ */
+export interface InventoryDragItem {
+  itemId: string;
+  sourceSlot: number;
+  quantity: number;
 }
 
 /**

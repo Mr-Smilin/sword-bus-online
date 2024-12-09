@@ -4,7 +4,7 @@
  */
 import React, { useMemo } from "react";
 import { Box, Paper, IconButton, Modal } from "@mui/material";
-import { Close as CloseIcon } from "@mui/icons-material";
+import { Close as CloseIcon, Opacity } from "@mui/icons-material";
 import { useLayout } from "../../contexts";
 import { usePanelContainerAnimation } from "../../utils/animations";
 import { useMap } from "../../contexts/MapContext";
@@ -12,25 +12,36 @@ import { CharacterCard, CharacterPanel } from "../character";
 import { MainView } from "../main-view";
 import HelpPanel from "../panels/HelpPanel";
 import MapPanel from "../panels/MapPanel";
+import InventoryPanel from "../inventory/InventoryPanel";
 import TravelProgress from "../map/TravelProgress";
 
-// 面板內容映射
+/**
+ * 面板內容映射表
+ * 定義每個面板ID對應的組件
+ */
 const PANEL_CONTENT = {
 	character: CharacterPanel,
-	inventory: () => <div>背包道具內容面板</div>,
+	inventory: InventoryPanel,
 	skills: () => <div>技能列表面板</div>,
 	map: MapPanel,
 	help: HelpPanel,
 };
 
+/**
+ * 主內容區域組件
+ * 負責整合和顯示所有主要內容面板
+ */
 const MainContent = () => {
 	const {
 		currentPanel,
 		mainContentStyles,
 		isModalOpen,
+		isInventoryExpanded,
 		layoutActions: { closeModal },
 		isModalPanel,
 	} = useLayout();
+
+	// 從 Map Context 獲取移動相關狀態
 	const { isMoving, travelInfo, moveProgress } = useMap();
 
 	// 動畫容器
@@ -49,7 +60,7 @@ const MainContent = () => {
 			deps: isModalOpen,
 		});
 
-	// 記憶化內容
+	// 記憶化主要內容組件，避免不必要的重渲染
 	const mainViewContent = useMemo(() => <MainView />, []);
 	const characterInfoContent = useMemo(() => <CharacterCard />, []);
 	const sidePanelContent = useMemo(() => {
@@ -58,9 +69,83 @@ const MainContent = () => {
 		return <PanelComponent />;
 	}, [currentPanel]);
 
+	/**
+	 * 計算角色資訊區域的樣式
+	 * 包含展開/收合背包時的動畫效果
+	 */
+	const characterInfoStyles = useMemo(
+		() => ({
+			// 基礎樣式
+			position: "relative",
+			width: "100%",
+			mb: 2,
+			minHeight: 0,
+			// 展開/收合動畫
+			transform:
+				isInventoryExpanded && currentPanel === "inventory"
+					? "translateX(100%)"
+					: "translateX(0)",
+			transition: (theme) =>
+				theme.transitions.create(["transform", "opacity"], {
+					duration: theme.transitions.duration.standard,
+					easing: theme.transitions.easing.easeInOut,
+				}),
+			// 其他樣式
+			bgcolor: "background.paper",
+			borderRadius: 1,
+			overflow: "hidden",
+			flex: "0 0 auto", // 不要伸縮，使用自身高度
+			height: {
+				xs: "auto",
+				sm: "calc(50vh - 44px)", // 保持原本的最大高度限制
+			},
+		}),
+		[isInventoryExpanded, currentPanel]
+	);
+
+	// 側邊面板的樣式
+	const sidePanelStyles = useMemo(
+		() => ({
+			// 基礎樣式
+			position: "absolute", // 永遠使用絕對定位
+			width: "100%",
+			maxHeight: {
+				xs: "auto",
+				sm: "calc(45vh - 44px)", // 保持原本的最大高度限制
+			},
+			// 使用 transform 來控制位置
+			transform: {
+				xs: "translateY(0)",
+				sm: "translateY(0)",
+			},
+			// 動畫過渡
+			transition: (theme) =>
+				theme.transitions.create(["transform", "height"], {
+					duration: theme.transitions.duration.standard, // 300ms
+					easing: theme.transitions.easing.easeInOut,
+				}),
+			// 其他樣式
+			bgcolor: "background.paper",
+			borderRadius: 1,
+			overflow: "hidden",
+			...(isInventoryExpanded &&
+				currentPanel === "inventory" && {
+					maxHeight: {
+						xs: "auto",
+						sm: "calc(70vh-44px)",
+					},
+					transform: {
+						xs: "translateY(0)",
+						sm: "translateY(calc(44px - 50vh))",
+					},
+				}),
+		}),
+		[isInventoryExpanded, currentPanel]
+	);
+
 	return (
 		<Box component="main" sx={mainContentStyles.main}>
-			{/* 進度條 */}
+			{/* 移動進度條 */}
 			{isMoving && (
 				<TravelProgress
 					progress={moveProgress}
@@ -101,51 +186,52 @@ const MainContent = () => {
 					{mainViewContent}
 				</MainViewContainer>
 
-				{/* 角色資訊/職業面板 */}
-				<CharacterInfoContainer
-					style={characterInfoStyle}
+				<Box
 					sx={{
+						// Grid 相關設定
 						gridColumn: {
-							xs: "1",
-							sm: "2 / 3",
+							xs: "1", // 手機版占滿寬度
+							sm: "2 / 3", // 平板以上在右側
 						},
 						gridRow: {
-							xs: "2",
-							sm: "1",
+							xs: "auto", // 手機版自動高度
+							sm: "1 / 3", // 平板以上占滿高度
 						},
-						maxHeight: {
-							sm: "calc(50vh - 40px)", // 分配一半的視窗高度
-						},
-						overflow: "hidden",
+						// 定位與布局
+						position: "relative", // 作為絕對定位的參考點
+						display: "flex", // 使用 flex 布局
+						flexDirection: "column", // 垂直排列子元素
+						// 尺寸相關
+						height: "100%", // 占滿容器高度
+						minHeight: 0, // 確保 flex 容器可以正確 scroll
+						// 過渡動畫
+						transition: (theme) =>
+							theme.transitions.create(["height", "transform"], {
+								duration: theme.transitions.duration.standard,
+								easing: theme.transitions.easing.easeInOut,
+							}),
+						// 其他樣式
+						backgroundColor: "transparent", // 透明背景，讓子元素背景色生效
+						zIndex: 0, // 基礎層級
+						// 確保內容不會溢出
+						// overflow: "hidden",
 					}}
 				>
-					{characterInfoContent}
-				</CharacterInfoContainer>
-
-				{/* 側邊欄面板 */}
-				{!isModalPanel(currentPanel) && (
-					<SidePanelContainer
-						style={sidePanelStyle}
-						sx={{
-							gridColumn: {
-								xs: "1",
-								sm: "2 / 3",
-							},
-							gridRow: {
-								xs: "3",
-								sm: "2",
-							},
-							minHeight: "200px",
-							bgcolor: "background.paper",
-							maxHeight: {
-								sm: "calc(50vh - 40px)", // 分配另一半的視窗高度
-							},
-							overflow: "hidden",
-						}}
+					{/* 角色資訊/職業面板 */}
+					<CharacterInfoContainer
+						style={characterInfoStyle}
+						sx={characterInfoStyles}
 					>
-						{sidePanelContent}
-					</SidePanelContainer>
-				)}
+						{characterInfoContent}
+					</CharacterInfoContainer>
+
+					{/* 側邊欄面板 */}
+					{!isModalPanel(currentPanel) && (
+						<SidePanelContainer style={sidePanelStyle} sx={sidePanelStyles}>
+							{sidePanelContent}
+						</SidePanelContainer>
+					)}
+				</Box>
 			</Box>
 
 			{/* 模態窗口 */}

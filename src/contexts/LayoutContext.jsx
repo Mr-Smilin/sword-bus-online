@@ -19,6 +19,7 @@ export const LayoutProvider = ({ children }) => {
 	const [currentPanel, setCurrentPanel] = useState("character");
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [mainViewPanel, setMainViewPanel] = useState("exploration");
+	const [isInventoryExpanded, setIsInventoryExpanded] = useState(false);
 
 	// 記憶化布局操作方法
 	const layoutActions = useMemo(
@@ -69,6 +70,11 @@ export const LayoutProvider = ({ children }) => {
 			// 返回探索面板
 			backToExploration: () => {
 				setMainViewPanel("exploration");
+			},
+
+			// 展開/收合背包
+			toggleInventoryExpand: () => {
+				setIsInventoryExpanded((prev) => !prev);
 			},
 		}),
 		[isMobileView, currentPanel]
@@ -123,6 +129,7 @@ export const LayoutProvider = ({ children }) => {
 		mainContentStyles,
 		// 操作方法
 		layoutActions,
+		isInventoryExpanded,
 		// 工具方法
 		isModalPanel: (panelId) => MODAL_PANELS.includes(panelId),
 	};
