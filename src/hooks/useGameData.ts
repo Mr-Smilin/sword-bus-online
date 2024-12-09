@@ -224,7 +224,6 @@ export const useGameData = (
 	// 根據等級更新當前狀態
 	const updatePlayerByLevel = useCallback(
 		(level: number, doUpdate: boolean = true) => {
-			console.log(playerData, currentClass);
 			if (!level || level <= 0 || !playerData?.characterStats || !currentClass)
 				return;
 

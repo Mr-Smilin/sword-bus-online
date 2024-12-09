@@ -100,7 +100,7 @@ const InventoryGrid = ({
 				...layout,
 				containerHeight: 300,
 			});
-	}, [layout, setLayout, isInventoryExpanded]);
+	}, [isInventoryExpanded]);
 
 	// 計算行數
 	const rowCount = Math.ceil(maxSlots / layout.columnCount);
@@ -116,7 +116,7 @@ const InventoryGrid = ({
 
 		// 查找格子中的物品
 		const item = items.find((item) => item.slot === slotIndex);
-		const isSelected = selectedItems.includes(slotIndex);
+		const isSelected = selectedItems.includes(slotIndex) ? true : undefined;
 		const deleteIndex = deleteQueue.indexOf(slotIndex) + 1;
 
 		// 調整格子樣式
@@ -133,7 +133,7 @@ const InventoryGrid = ({
 					itemId={item?.itemId}
 					quantity={item?.quantity || 0}
 					slot={slotIndex}
-					isSelected={isSelected}
+					isselected={isSelected}
 					deleteIndex={deleteIndex}
 					onClick={() => onSlotClick?.(slotIndex, item)}
 					onMouseEnter={(e) => onItemHover?.(item, true, e)}

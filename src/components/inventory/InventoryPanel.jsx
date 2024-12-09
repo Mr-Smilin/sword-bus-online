@@ -107,7 +107,14 @@ const InventoryPanel = () => {
 	);
 
 	return (
-		<Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+		<Box
+			sx={{
+				position: "relative",
+				height: "100%",
+				display: "flex",
+				flexDirection: "column",
+			}}
+		>
 			{/* 標題和操作按鈕 */}
 			<Box
 				sx={{

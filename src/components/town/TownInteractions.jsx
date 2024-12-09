@@ -256,7 +256,7 @@ const TownInteractions = () => {
 										)
 									}
 									elevation={expandedId === facility.id ? 4 : 1}
-									expanded={expandedId === facility.id}
+									expanded={expandedId === facility.id ? "true" : undefined}
 									disabled={facility.disabled}
 								>
 									{/* 設施內容容器 */}
@@ -294,7 +294,7 @@ const TownInteractions = () => {
 										{/* 展開的詳細資訊 */}
 										<AnimatedCollapse
 											in={expandedId === facility.id}
-											expanded={expandedId === facility.id}
+											expanded={expandedId === facility.id ? "true" : undefined}
 										>
 											{/* 額外的組件（如快速樓層切換）*/}
 											{facility.renderExtra?.({

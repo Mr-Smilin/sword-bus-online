@@ -8,15 +8,15 @@ import { items } from "../../data/item";
  * 背包格子容器
  * 根據物品狀態不同顯示不同樣式
  */
-const SlotContainer = styled(Box)(({ theme, isEmpty, isSelected }) => ({
+const SlotContainer = styled(Box)(({ theme, isempty, isselected }) => ({
 	// 基礎樣式
 	width: "100%",
 	height: "100%",
 	border: `2px solid ${
-		isSelected ? theme.palette.error.main : theme.palette.divider
+		isselected ? theme.palette.error.main : theme.palette.divider
 	}`,
 	borderRadius: theme.shape.borderRadius,
-	backgroundColor: isEmpty ? "transparent" : theme.palette.background.paper,
+	backgroundColor: isempty ? "transparent" : theme.palette.background.paper,
 	position: "relative",
 	cursor: "pointer",
 
@@ -86,7 +86,7 @@ const InventorySlot = ({
 	itemId,
 	quantity,
 	slot,
-	isSelected,
+	isselected,
 	deleteIndex,
 	onClick,
 	onMouseEnter,
@@ -94,12 +94,12 @@ const InventorySlot = ({
 }) => {
 	// 從物品庫獲取物品資料
 	const itemData = items.find((i) => i.id === itemId);
-	const isEmpty = !itemData;
+	const isEmpty = !itemData ? "true" : undefined;
 
 	return (
 		<SlotContainer
-			isEmpty={isEmpty}
-			isSelected={isSelected}
+			isempty={isEmpty}
+			isselected={isselected}
 			onClick={onClick}
 			onMouseEnter={onMouseEnter}
 			onMouseLeave={onMouseLeave}
