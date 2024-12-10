@@ -112,7 +112,10 @@ const InventorySlot = ({
 
 	// 處理拖曳開始
 	const handleDragStart = (e) => {
-		if (isEmpty) return;
+		if (isEmpty) {
+			e.preventDefault();
+			return;
+		}
 
 		// 設置拖曳資料
 		e.dataTransfer.setData(
