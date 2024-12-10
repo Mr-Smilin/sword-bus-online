@@ -83,7 +83,7 @@ const MainContent = () => {
 			// 展開/收合動畫
 			transform:
 				isInventoryExpanded && currentPanel === "inventory"
-					? "translateX(100%)"
+					? "translateX(102%)"
 					: "translateX(0)",
 			transition: (theme) =>
 				theme.transitions.create(["transform", "opacity"], {

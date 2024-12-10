@@ -1,5 +1,5 @@
 // components/inventory/InventorySlot.jsx
-import React from "react";
+import React, { useState, useRef } from "react";
 import { Box, Typography } from "@mui/material";
 import { styled } from "@mui/material/styles";
 import { items } from "../../data/item";
@@ -19,6 +19,12 @@ const SlotContainer = styled(Box)(({ theme, isempty, isselected }) => ({
 	backgroundColor: isempty ? "transparent" : theme.palette.background.paper,
 	position: "relative",
 	cursor: "pointer",
+	// 確保無論焦點在哪都可以拖曳
+	WebkitUserDrag: "element", // 為 Safari 添加
+	userDrag: "element", // 標準屬性
+	// 禁止文字選擇，避免干擾拖曳
+	userSelect: "none",
+	WebkitUserSelect: "none",
 
 	// 動畫效果
 	transition: theme.transitions.create(
@@ -81,6 +87,10 @@ const DeleteNumber = styled(Box)(({ theme }) => ({
  * @param {function} onClick - 點擊事件處理
  * @param {function} onMouseEnter - 鼠標進入事件處理
  * @param {function} onMouseLeave - 鼠標離開事件處理
+ * @param {function} onDragStart - 拖曳開始事件處理
+ * @param {function} onDragEnd - 拖曳結束事件處理
+ * @param {function} onDragOver - 拖曳經過事件處理
+ * @param {function} onDrop - 放置事件處理
  */
 const InventorySlot = ({
 	itemId,
@@ -91,10 +101,31 @@ const InventorySlot = ({
 	onClick,
 	onMouseEnter,
 	onMouseLeave,
+	onDragStart,
+	onDragEnd,
+	onDragOver,
+	onDrop,
 }) => {
 	// 從物品庫獲取物品資料
 	const itemData = items.find((i) => i.id === itemId);
 	const isEmpty = !itemData ? "true" : undefined;
+
+	// 處理拖曳開始
+	const handleDragStart = (e) => {
+		if (isEmpty) return;
+
+		// 設置拖曳資料
+		e.dataTransfer.setData(
+			"text/plain",
+			JSON.stringify({
+				itemId,
+				quantity,
+				sourceSlot: slot,
+				stackable: itemData.stackable,
+			})
+		);
+		onDragStart?.(slot);
+	};
 
 	return (
 		<SlotContainer
@@ -103,6 +134,18 @@ const InventorySlot = ({
 			onClick={onClick}
 			onMouseEnter={onMouseEnter}
 			onMouseLeave={onMouseLeave}
+			draggable={!isEmpty} // 只有有物品的格子可以拖曳
+			onDragStart={handleDragStart}
+			onDragEnd={onDragEnd}
+			onDragOver={(e) => {
+				e.preventDefault(); // 允許放置
+				onDragOver?.(slot);
+			}}
+			onDrop={(e) => {
+				e.preventDefault();
+				const data = JSON.parse(e.dataTransfer.getData("text/plain"));
+				onDrop?.(data, slot);
+			}}
 		>
 			{!isEmpty && (
 				<>

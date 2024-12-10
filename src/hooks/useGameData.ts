@@ -723,40 +723,61 @@ export const useGameData = (
 
 	/**
 	 * 拆分堆疊
-	 * @param slot 要拆分的物品所在格子
+	 * @param fromSlot 要拆分的物品所在格子
+	 * @param toSlot 目標格子
 	 * @param quantity 要拆分的數量
 	 */
 	const splitStack = useCallback(
-		(slot: number, quantity: number): boolean => {
+		(fromSlot: number, toSlot: number, quantity: number): boolean => {
 			if (quantity <= 0) return false;
 
 			setInventoryState((prev) => {
-				// 檢查原始物品
-				const sourceItem = prev.items.find((i) => i.slot === slot);
+				// 檢查源物品
+				const sourceItem = prev.items.find((i) => i.slot === fromSlot);
 				if (!sourceItem || sourceItem.quantity <= quantity) return prev;
 
-				// 檢查是否有空格
-				const emptySlot = findEmptySlot();
-				if (emptySlot === -1) return prev;
+				// 檢查目標格子
+				const targetItem = prev.items.find((i) => i.slot === toSlot);
+
+				// 如果目標格子有物品，檢查是否可以堆疊
+				if (targetItem) {
+					if (targetItem.itemId !== sourceItem.itemId) return prev;
+
+					const maxStack =
+						DEFAULT_INVENTORY_SETTINGS.maxStackByType[
+							items.find((i) => i.id === sourceItem.itemId)?.type || "misc"
+						];
+
+					if (targetItem.quantity + quantity > maxStack) return prev;
+				}
 
 				// 創建新的物品列表
 				const newItems = prev.items.map((item) => {
-					if (item.slot === slot) {
-						// 減少原始堆疊數量
+					if (item.slot === fromSlot) {
+						// 減少源堆疊數量
 						return {
 							...item,
 							quantity: item.quantity - quantity,
 						};
 					}
+					if (item.slot === toSlot && targetItem) {
+						// 增加目標堆疊數量
+						return {
+							...item,
+							quantity: item.quantity + quantity,
+						};
+					}
 					return item;
 				});
 
-				// 添加新堆疊
-				newItems.push({
-					itemId: sourceItem.itemId,
-					quantity,
-					slot: emptySlot,
-				});
+				// 如果目標格子是空的，創建新堆疊
+				if (!targetItem) {
+					newItems.push({
+						itemId: sourceItem.itemId,
+						quantity,
+						slot: toSlot,
+					});
+				}
 
 				const newState = {
 					...prev,
@@ -776,8 +797,8 @@ export const useGameData = (
 									type: "split",
 									itemId: sourceItem.itemId,
 									quantity,
-									fromSlot: slot,
-									toSlot: emptySlot,
+									fromSlot,
+									toSlot,
 									timestamp: Date.now(),
 								},
 							],
@@ -790,7 +811,7 @@ export const useGameData = (
 
 			return true;
 		},
-		[findEmptySlot, onPlayerChange, playerData]
+		[onPlayerChange, playerData]
 	);
 
 	/**

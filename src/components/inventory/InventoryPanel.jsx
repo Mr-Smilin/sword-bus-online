@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { Box, Button, Typography, IconButton } from "@mui/material";
+import { Box, Button, Typography, IconButton, Portal } from "@mui/material";
 import { Trash2, SortDesc, Dices, ChevronDown, ChevronUp } from "lucide-react";
 import { useGame } from "../../contexts/GameContext";
 import { useLayout } from "../../contexts";
@@ -14,6 +14,8 @@ const InventoryPanel = () => {
 		inventoryState,
 		sortInventory,
 		discardItems,
+		moveItem,
+		splitStack,
 		removeFromInventory,
 		addToInventory,
 	} = useGame();
@@ -106,10 +108,37 @@ const InventoryPanel = () => {
 		[removeFromInventory, discardItems]
 	);
 
+	// 刪除模式的切換處理
+	const handleDeleteModeToggle = () => {
+		setIsDeleteMode((prev) => {
+			// 如果要關閉刪除模式，清空選擇的項目
+			if (prev) {
+				setSelectedItems([]);
+			}
+			return !prev;
+		});
+	};
+
+	// 處理物品移動
+	const handleMoveItem = useCallback(
+		(fromSlot, toSlot) => {
+			// 使用已有的 moveItem 方法
+			moveItem(fromSlot, toSlot);
+		},
+		[moveItem]
+	);
+
+	// 處理堆疊拆分
+	const handleSplitStack = useCallback(
+		(fromSlot, toSlot, quantity) => {
+			splitStack(fromSlot, toSlot, quantity);
+		},
+		[splitStack]
+	);
+
 	return (
 		<Box
 			sx={{
-				position: "relative",
 				height: "100%",
 				display: "flex",
 				flexDirection: "column",
@@ -150,7 +179,7 @@ const InventoryPanel = () => {
 					</Button>
 					<Button
 						startIcon={<Trash2 size={18} />}
-						onClick={() => setIsDeleteMode(!isDeleteMode)}
+						onClick={handleDeleteModeToggle}
 						variant={isDeleteMode ? "contained" : "outlined"}
 						color={isDeleteMode ? "error" : "primary"}
 						size="small"
@@ -184,9 +213,11 @@ const InventoryPanel = () => {
 					items={inventoryState.items}
 					maxSlots={inventoryState.maxSlots}
 					selectedItems={selectedItems.map((item) => item.slot)}
-					deleteQueue={selectedItems.map((_, index) => index + 1)}
+					deleteQueue={selectedItems.map((item) => item.slot)}
 					onSlotClick={handleSlotClick}
 					onItemHover={handleItemHover}
+					onMoveItem={handleMoveItem}
+					onSplitStack={handleSplitStack}
 				/>
 			</Box>
 
@@ -205,7 +236,9 @@ const InventoryPanel = () => {
 			)}
 
 			{/* 物品提示框 */}
-			<ItemTooltip {...tooltipState} />
+			<Portal>
+				<ItemTooltip {...tooltipState} />
+			</Portal>
 
 			{/* 刪除確認對話框 */}
 			<DeleteItemDialog

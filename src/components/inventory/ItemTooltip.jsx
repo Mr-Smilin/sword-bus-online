@@ -29,13 +29,11 @@ const ItemTooltip = ({ itemId, position, quantity, show = true }) => {
 	const itemData = items.find((i) => i.id === itemId);
 	if (!itemData) return null;
 
-	console.log(position, itemData);
-
 	return (
 		<TooltipContainer
 			style={{
-				left: position.x + 20,
-				top: position.y + 20,
+				left: position.x + 25,
+				top: position.y + 25,
 			}}
 		>
 			<Typography
