@@ -14,6 +14,13 @@
     │   │   ├── index.jsx
     │   │   └── ProfessionTab.jsx
     │   ├── GameLayout.jsx
+    │   ├── inventory
+    │   │   ├── DeleteItemDialog.jsx
+    │   │   ├── InventoryGrid.jsx
+    │   │   ├── InventoryPanel.jsx
+    │   │   ├── InventorySlot.jsx
+    │   │   ├── ItemTooltip.jsx
+    │   │   └── SplitStackDialog.jsx
     │   ├── layout
     │   │   ├── AnimatedNavMenu.jsx
     │   │   ├── AppHeader.jsx
@@ -53,6 +60,8 @@
     │   │   ├── index.ts
     │   │   ├── special.ts
     │   │   └── support.ts
+    │   ├── inventory
+    │   │   └── settings.ts
     │   ├── item
     │   │   └── index.ts
     │   ├── maps

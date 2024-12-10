@@ -91,7 +91,7 @@ const MainContent = () => {
 					easing: theme.transitions.easing.easeInOut,
 				}),
 			// 其他樣式
-			bgcolor: "background.paper",
+			bgcolor: "transparent",
 			borderRadius: 1,
 			overflow: "hidden",
 			flex: "0 0 auto", // 不要伸縮，使用自身高度
