@@ -33,6 +33,7 @@ import {
 // 引入必要的 context 和組件
 import { useMap } from "../../contexts/MapContext";
 import { floors } from "../../data/maps/mapDefinitions";
+import ShopPanel from "../shop/ShopPanel";
 import FloorSwitchDialog from "./FloorSwitchDialog";
 import QuickFloorSwitch from "./QuickFloorSwitch";
 
@@ -108,8 +109,8 @@ const TOWN_FACILITIES = [
 		label: "商店",
 		icon: Store,
 		description: "購買補給品和裝備",
-		disabled: true,
-		tooltip: "商店正在進貨中...",
+		disabled: false,
+		dialog: "shop",
 	},
 	{
 		id: "quest",
@@ -171,8 +172,8 @@ const TownInteractions = () => {
 
 	// 狀態管理
 	const [expandedId, setExpandedId] = useState(null); // 當前展開的設施ID
-	const [isDialogOpen, setIsDialogOpen] = useState(false); // 樓層選擇對話框狀態
-	const [confirmDialog, setConfirmDialog] = useState({
+	const [dialogState, setDialogState] = useState({
+		type: null, // 當前開啟的對話框類型
 		// 確認對話框狀態
 		open: false,
 		targetFloor: null,
@@ -182,10 +183,10 @@ const TownInteractions = () => {
 	 * 處理樓層切換確認
 	 */
 	const handleConfirmChange = () => {
-		if (confirmDialog.targetFloor) {
-			changeFloor(confirmDialog.targetFloor.id);
+		if (dialogState.targetFloor) {
+			changeFloor(dialogState.targetFloor.id);
 		}
-		setConfirmDialog({ open: false, targetFloor: null });
+		setDialogState((props) => ({ ...props, open: false, targetFloor: null }));
 	};
 
 	/**
@@ -194,11 +195,41 @@ const TownInteractions = () => {
 	 */
 	const handleFloorChange = (floorId) => {
 		const targetFloor = floors.find((f) => f.id === floorId);
-		setConfirmDialog({
+		setDialogState((props) => ({
+			...props,
+			type: "floors",
 			open: true,
 			targetFloor,
+		}));
+	};
+
+	/**
+	 * 處理設施點擊
+	 */
+	const handleFacilityClick = (facility) => {
+		if (facility.disabled) return;
+
+		if (facility.id === "floors") {
+			setDialogState({
+				type: facility.id,
+				open: true,
+			});
+		} else if (facility.id === "shop") {
+			setDialogState({
+				type: facility.id,
+				open: true,
+			});
+		}
+	};
+
+	/**
+	 * 關閉對話框
+	 */
+	const handleCloseDialog = () => {
+		setDialogState({
+			type: null,
+			open: false,
 		});
-		setIsDialogOpen(false);
 	};
 
 	// 只在城鎮顯示
@@ -276,9 +307,7 @@ const TownInteractions = () => {
 													startIcon={<facility.icon size={18} />}
 													disabled={facility.disabled}
 													onClick={() => {
-														if (facility.id === "floors") {
-															setIsDialogOpen(true);
-														}
+														handleFacilityClick(facility);
 													}}
 													sx={{
 														justifyContent: "flex-start",
@@ -323,30 +352,46 @@ const TownInteractions = () => {
 
 			{/* 樓層切換對話框 */}
 			<FloorSwitchDialog
-				open={isDialogOpen}
-				onClose={() => setIsDialogOpen(false)}
+				open={
+					!dialogState.targetFloor &&
+					dialogState.type === "floors" &&
+					dialogState.open
+				}
+				onClose={() => handleCloseDialog()}
 				onFloorSelect={handleFloorChange}
 			/>
 
 			{/* 確認對話框 */}
 			<Dialog
-				open={confirmDialog.open}
-				onClose={() => setConfirmDialog({ open: false, targetFloor: null })}
+				open={
+					!!dialogState.targetFloor &&
+					dialogState.type === "floors" &&
+					dialogState.open
+				}
+				onClose={() => handleCloseDialog()}
 			>
 				<DialogTitle>確認傳送</DialogTitle>
 				<DialogContent>
-					確定要傳送到 {confirmDialog.targetFloor?.name} 嗎？
+					確定要傳送到 {dialogState.targetFloor?.name} 嗎？
 				</DialogContent>
 				<DialogActions>
-					<Button
-						onClick={() => setConfirmDialog({ open: false, targetFloor: null })}
-					>
-						取消
-					</Button>
+					<Button onClick={() => handleCloseDialog()}>取消</Button>
 					<Button variant="contained" onClick={handleConfirmChange}>
 						確認
 					</Button>
 				</DialogActions>
+			</Dialog>
+
+			{/* 商店對話框 */}
+			<Dialog
+				open={dialogState.type === "shop" && dialogState.open}
+				onClose={handleCloseDialog}
+				maxWidth="md"
+				fullWidth
+			>
+				<DialogContent sx={{ p: 0 }}>
+					<ShopPanel />
+				</DialogContent>
 			</Dialog>
 		</Box>
 	);

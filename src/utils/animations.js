@@ -64,6 +64,26 @@ export const animations = {
       transform: scale(1);
     }
   `,
+
+	// 水平滑動效果
+	slideHorizontal: keyframes`
+    from {
+      transform: translateX(100%);
+    }
+    to {
+      transform: translateX(0);
+    }
+  `,
+
+	// 反向水平滑動效果
+	slideHorizontalReverse: keyframes`
+    from {
+      transform: translateX(0);
+    }
+    to {
+      transform: translateX(-100%);
+    }
+  `,
 };
 
 /**
@@ -96,6 +116,16 @@ export const useAnimation = (type = "fadeIn", options = {}) => {
 						await next({ transform: "translateY(-20px)" });
 						await next({ transform: "translateY(0)" });
 					},
+				};
+			case "slideHorizontal":
+				return {
+					from: { transform: "translateX(100%)" },
+					to: { transform: "translateX(0)" },
+				};
+			case "slideHorizontalReverse":
+				return {
+					from: { transform: "translateX(0)" },
+					to: { transform: "translateX(-100%)" },
 				};
 			default:
 				return {

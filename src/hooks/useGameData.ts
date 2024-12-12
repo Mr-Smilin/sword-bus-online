@@ -11,6 +11,8 @@ import {
 	Skill,
 	WeaponType,
 	EffectType,
+	CurrencyType,
+	CurrencyData,
 } from "../data/type";
 import { items } from "../data/item";
 import { weapons } from "../data/weapons";
@@ -1185,6 +1187,81 @@ export const useGameData = (
 		return (experience / nextLevelExp) * 100;
 	}, [playerData?.characterStats]);
 
+	/**
+	 * 增加指定類型的貨幣
+	 * @param type 貨幣類型
+	 * @param amount 金額(需為正數)
+	 */
+	const addCurrency = useCallback(
+		(type: CurrencyType, amount: number): boolean => {
+			if (!playerData || amount <= 0) return false;
+
+			const newPlayer = {
+				...playerData,
+				currency: {
+					...playerData.currency,
+					[type]: (playerData.currency[type] || 0) + amount,
+				},
+			};
+
+			onPlayerChange?.(newPlayer);
+			return true;
+		},
+		[playerData, onPlayerChange]
+	);
+
+	/**
+	 * 扣除指定類型的貨幣
+	 * @param type 貨幣類型
+	 * @param amount 金額(需為正數)
+	 * @returns 是否扣除成功
+	 */
+	const deductCurrency = useCallback(
+		(type: CurrencyType, amount: number): boolean => {
+			if (!playerData || amount <= 0) return false;
+
+			// 檢查餘額是否足夠
+			if ((playerData.currency[type] || 0) < amount) return false;
+
+			const newPlayer = {
+				...playerData,
+				currency: {
+					...playerData.currency,
+					[type]: (playerData.currency[type] || 0) - amount,
+				},
+			};
+
+			onPlayerChange?.(newPlayer);
+			return true;
+		},
+		[playerData, onPlayerChange]
+	);
+
+	/**
+	 * 檢查指定類型的貨幣是否足夠
+	 * @param type 貨幣類型
+	 * @param amount 要檢查的金額
+	 */
+	const hasSufficientCurrency = useCallback(
+		(type: CurrencyType, amount: number): boolean => {
+			if (!playerData || amount <= 0) return false;
+			return (playerData.currency[type] || 0) >= amount;
+		},
+		[playerData]
+	);
+
+	/**
+	 * 獲取指定類型的貨幣餘額
+	 * @param type 貨幣類型
+	 */
+	const getCurrencyBalance = useCallback(
+		(type: CurrencyType): number => {
+			if (!playerData) return 0;
+			return playerData.currency[type] || 0;
+		},
+		[playerData]
+	);
+
 	return {
 		// 角色狀態相關
 		updateCurrentHealth,
@@ -1217,5 +1294,11 @@ export const useGameData = (
 		// 經驗值相關
 		gainExperience,
 		getExpPercentage,
+
+		// 貨幣相關
+		addCurrency,
+		deductCurrency,
+		hasSufficientCurrency,
+		getCurrencyBalance,
 	};
 };

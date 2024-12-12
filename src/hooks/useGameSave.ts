@@ -132,6 +132,13 @@ export const useGameSave = () => {
 					dexterity: 1,
 					intelligence: 1,
 				},
+				currency: {
+					gold: 0, // 初始金幣
+					dungeon: 0, // 初始副本代幣
+					faith: 0, // 初始信仰之力
+					honor: 0, // 初始榮譽點數
+					event: 0, // 初始活動代幣
+				},
 				inventory: {
 					state: {
 						items: [],
