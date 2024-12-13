@@ -546,3 +546,10 @@ export interface ShopDefinition {
 		questId?: string; // 需要完成的任務
 	};
 }
+
+/**
+ * 角色裝備欄位類型定義
+ */
+export interface EquipmentSlots {
+	weapon: Weapon | null;
+}
