@@ -31,8 +31,11 @@ export const GameProvider = ({ children }) => {
 	const gameData = useGameData(
 		saveData?.player,
 		// 當角色情報改變時，更新存檔
-		(newPlayer) => {
-			updatePlayerData(newPlayer);
+		async (newPlayer) => {
+			// 只在数据实际发生变化时才更新
+			if (JSON.stringify(newPlayer) !== JSON.stringify(saveData?.player)) {
+				await updatePlayerData(newPlayer);
+			}
 		}
 	);
 

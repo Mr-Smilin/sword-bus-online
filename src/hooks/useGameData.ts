@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import { PlayerData, InventoryState } from "../data/type";
-import { useUpdateQueue } from "./useUpdateQueue";
 
 // 導入所有子系統
 import { useGameCharacter } from "./useGameData/useGameCharacter";
@@ -11,8 +10,6 @@ import { useGameSkill } from "./useGameData/useGameSkill";
 import { useGameEffect } from "./useGameData/useGameEffect";
 import { DEFAULT_INVENTORY_SETTINGS } from "../data/inventory/settings";
 
-type PlayerDataUpdater = PlayerData | ((prev: PlayerData) => PlayerData);
-
 /**
  * 遊戲核心數據 Hook
  * @param playerData 玩家資料
@@ -20,11 +17,8 @@ type PlayerDataUpdater = PlayerData | ((prev: PlayerData) => PlayerData);
  */
 export const useGameData = (
 	playerData: PlayerData | undefined,
-	onPlayerChange?: (newPlayer: PlayerData) => void
+	onPlayerChange?: (newPlayer: PlayerData) => Promise<void>
 ) => {
-	// 初始化更新佇列
-	const { update } = useUpdateQueue<PlayerData>(playerData, onPlayerChange);
-
 	// 背包狀態管理
 	const [inventoryState, setInventoryState] = useState<InventoryState>(() => ({
 		items: playerData?.inventory?.state?.items || [],
@@ -40,7 +34,7 @@ export const useGameData = (
 		updatePlayerByLevel,
 		gainExperience,
 		getExpPercentage,
-	} = useGameCharacter(playerData, update);
+	} = useGameCharacter(playerData, onPlayerChange);
 
 	const {
 		findEmptySlot,
@@ -52,14 +46,19 @@ export const useGameData = (
 		useItem,
 		canStackWith,
 		discardItems,
-	} = useGameInventory(playerData, inventoryState, setInventoryState, update);
+	} = useGameInventory(
+		playerData,
+		inventoryState,
+		setInventoryState,
+		onPlayerChange
+	);
 
 	const {
 		addCurrency,
 		deductCurrency,
 		hasSufficientCurrency,
 		getCurrencyBalance,
-	} = useGameCurrency(playerData, update);
+	} = useGameCurrency(playerData, onPlayerChange);
 
 	const {
 		equipment,
@@ -69,7 +68,7 @@ export const useGameData = (
 		calculateEquipmentBonus,
 		hasEquippedWeaponType,
 		getEquippedWeapon,
-	} = useGameEquipment(playerData, update);
+	} = useGameEquipment(playerData, onPlayerChange);
 
 	const {
 		canUseSkill,
@@ -78,7 +77,7 @@ export const useGameData = (
 		isEffectActive: isSkillEffectActive,
 		getAvailableSkills,
 		isClassSkillAvailable,
-	} = useGameSkill(playerData, getEquippedWeapon()?.type, update);
+	} = useGameSkill(playerData, getEquippedWeapon()?.type, onPlayerChange);
 
 	const {
 		addEffect,
@@ -88,7 +87,7 @@ export const useGameData = (
 		getEffectDuration,
 		calculateEffectStats,
 		activeEffects,
-	} = useGameEffect(playerData, update);
+	} = useGameEffect(playerData, onPlayerChange);
 
 	return {
 		// 背包相關

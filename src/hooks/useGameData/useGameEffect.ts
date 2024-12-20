@@ -34,7 +34,7 @@ interface EffectStats {
  */
 export const useGameEffect = (
 	playerData: PlayerData | undefined,
-	onPlayerChange?: (newPlayer: PlayerData) => void
+	onPlayerChange?: (newPlayer: PlayerData) => Promise<void>
 ) => {
 	// 活動中的效果列表
 	const [activeEffects, setActiveEffects] = useState<EffectData[]>([]);
@@ -248,7 +248,7 @@ export const useGameEffect = (
 	/**
 	 * 更新角色屬性
 	 */
-	const updatePlayerStats = useCallback(() => {
+	const updatePlayerStats = useCallback(async () => {
 		if (!playerData) return;
 
 		const effectStats = calculateEffectStats();
@@ -266,7 +266,7 @@ export const useGameEffect = (
 			}
 		});
 
-		onPlayerChange?.({
+		await onPlayerChange?.({
 			...playerData,
 			characterStats,
 		});

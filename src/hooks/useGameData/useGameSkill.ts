@@ -18,7 +18,7 @@ import { classes } from "../../data/classes";
 export const useGameSkill = (
 	playerData: PlayerData | undefined,
 	equippedWeaponType: WeaponType | undefined,
-	onPlayerChange?: (newPlayer: PlayerData) => void
+	onPlayerChange?: (newPlayer: PlayerData) => Promise<void>
 ) => {
 	// 技能冷卻狀態
 	const [skillCooldowns, setSkillCooldowns] = useState<Record<string, number>>(
@@ -87,7 +87,7 @@ export const useGameSkill = (
 	 * @param skillId 技能ID
 	 */
 	const useSkill = useCallback(
-		(skillId: string): boolean => {
+		async (skillId: string): Promise<boolean> => {
 			if (!canUseSkill(skillId) || !playerData) return false;
 
 			const skill = skillMap.get(skillId);
@@ -117,7 +117,7 @@ export const useGameSkill = (
 			}
 
 			// 更新玩家狀態
-			onPlayerChange?.({
+			await onPlayerChange?.({
 				...playerData,
 				characterStats: {
 					...playerData.characterStats,
@@ -246,7 +246,7 @@ export const useGameSkill = (
 	 * @param skillId 技能ID
 	 */
 	const unlockSkill = useCallback(
-		(skillId: string): boolean => {
+		async (skillId: string): Promise<boolean> => {
 			if (!playerData?.currentClassId || !currentClass) return false;
 
 			// 檢查技能是否存在
@@ -258,7 +258,7 @@ export const useGameSkill = (
 			if (unlockedSkills.includes(skillId)) return false;
 
 			// 更新玩家資料
-			onPlayerChange?.({
+			await onPlayerChange?.({
 				...playerData,
 				classProgress: {
 					...playerData.classProgress,

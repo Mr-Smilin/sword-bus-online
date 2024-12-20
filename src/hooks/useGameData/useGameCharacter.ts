@@ -54,13 +54,13 @@ const calculateStatGrowth = (
  */
 export const useGameCharacter = (
 	playerData: PlayerData | undefined,
-	onPlayerChange?: (newPlayer: PlayerData) => void
+	onPlayerChange?: (newPlayer: PlayerData) => Promise<void>
 ) => {
 	/**
 	 * 更新當前生命值
 	 */
 	const updateCurrentHealth = useCallback(
-		(amount: number) => {
+		async (amount: number) => {
 			if (!playerData?.characterStats) return;
 
 			const maxHealth = playerData.characterStats.health;
@@ -74,7 +74,7 @@ export const useGameCharacter = (
 					),
 				},
 			};
-			onPlayerChange?.(newStats);
+			await onPlayerChange?.(newStats);
 		},
 		[playerData, onPlayerChange]
 	);
@@ -83,7 +83,7 @@ export const useGameCharacter = (
 	 * 更新當前魔力值
 	 */
 	const updateCurrentMana = useCallback(
-		(amount: number) => {
+		async (amount: number) => {
 			if (!playerData?.characterStats) return;
 
 			const maxMana = playerData.characterStats.mana;
@@ -97,7 +97,7 @@ export const useGameCharacter = (
 					),
 				},
 			};
-			onPlayerChange?.(newStats);
+			await onPlayerChange?.(newStats);
 		},
 		[playerData, onPlayerChange]
 	);
@@ -106,7 +106,7 @@ export const useGameCharacter = (
 	 * 根據等級更新角色屬性
 	 */
 	const updatePlayerByLevel = useCallback(
-		(level: number, doUpdate: boolean = true) => {
+		async (level: number, doUpdate: boolean = true) => {
 			if (!level || level <= 0 || !playerData?.characterStats) return;
 
 			const currentClass = classes[playerData.currentClassId];
@@ -183,7 +183,7 @@ export const useGameCharacter = (
 			};
 
 			if (doUpdate) {
-				onPlayerChange?.(newPlayer);
+				await onPlayerChange?.(newPlayer);
 			} else {
 				return newPlayer;
 			}
@@ -195,7 +195,7 @@ export const useGameCharacter = (
 	 * 增加經驗值並處理升級
 	 */
 	const gainExperience = useCallback(
-		(amount: number): void => {
+		async (amount: number) => {
 			if (!playerData?.characterStats) return;
 
 			const characterStats = playerData.characterStats;
@@ -212,9 +212,9 @@ export const useGameCharacter = (
 
 			// 如果升級了則更新屬性
 			if (newLevel > characterStats.level) {
-				const newPlayer = updatePlayerByLevel(newLevel, false);
+				const newPlayer = await updatePlayerByLevel(newLevel, false);
 				if (newPlayer) {
-					onPlayerChange?.({
+					await onPlayerChange?.({
 						...newPlayer,
 						characterStats: {
 							...newPlayer.characterStats,
@@ -224,7 +224,7 @@ export const useGameCharacter = (
 				}
 			} else {
 				// 只更新經驗值
-				onPlayerChange?.({
+				await onPlayerChange?.({
 					...playerData,
 					characterStats: {
 						...characterStats,

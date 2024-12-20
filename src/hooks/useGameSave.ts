@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { v4 as uuidv4 } from "uuid";
 import { GameSaveData, PlayerData, GameEventData } from "../data/type";
 import { classes } from "../data/classes";
@@ -6,6 +6,7 @@ import {
 	DEFAULT_INVENTORY_SETTINGS,
 	ITEM_TYPE_WEIGHT,
 } from "../data/inventory/settings";
+import { UpdateQueue } from "./useQueue";
 
 const SAVE_KEY = "sao_game_save";
 const CURRENT_VERSION = "1.0.0";
@@ -19,6 +20,42 @@ export const useGameSave = () => {
 	const [saveData, setSaveData] = useState<GameSaveData | null>(null);
 	// 是否正在載入
 	const [isLoading, setIsLoading] = useState(true);
+
+	// 使用 useUpdateQueue 管理保存数据的更新
+	const updateQueue = useRef(new UpdateQueue()).current;
+
+	// 更新存档数据的方法
+	const updateSaveData = useCallback(
+		(
+			updateFn: (prevState: GameSaveData | null) => GameSaveData,
+			onComplete?: () => void,
+			source?: string
+		) => {
+			return new Promise<void>((resolve) => {
+				try {
+					setSaveData((currentState) => {
+						const updatedData = updateFn(currentState);
+
+						// 同步更新 localStorage
+						localStorage.setItem(SAVE_KEY, JSON.stringify(updatedData));
+
+						// 使用回调函数确保状态更新后执行
+						setTimeout(() => {
+							console.log(`Data updated from source: ${source}`);
+							onComplete?.();
+							resolve(); // 确保 Promise 被 resolve
+						}, 200);
+
+						return updatedData;
+					});
+				} catch (error) {
+					console.error("Update save data failed", error);
+					resolve(); // 即使出错也要 resolve
+				}
+			});
+		},
+		[]
+	);
 
 	// 初始化時載入存檔
 	useEffect(() => {
@@ -50,35 +87,27 @@ export const useGameSave = () => {
 	};
 
 	/**
-	 * 儲存遊戲資料
-	 * @param {GameSaveData} data - 要儲存的資料
-	 */
-	const saveGameData = (data: GameSaveData) => {
-		try {
-			localStorage.setItem(SAVE_KEY, JSON.stringify(data));
-			setSaveData(data);
-		} catch (error) {
-			console.error("Failed to save game data:", error);
-		}
-	};
-
-	/**
 	 * 更新玩家資料
 	 * @param {Partial<PlayerData>} updates - 要更新的玩家資料欄位
 	 */
-	const updatePlayerData = (updates: Partial<PlayerData>) => {
+	const updatePlayerData = async (
+		updates: Partial<PlayerData>,
+		source?: string
+	) => {
 		if (!saveData) return;
 
-		const updatedSave = {
-			...saveData,
-			player: {
-				...saveData.player,
-				...updates,
-				lastLoginAt: Date.now(),
-			},
-		};
-
-		saveGameData(updatedSave);
+		await updateSaveData(
+			(prevSave) => ({
+				...prevSave!,
+				player: {
+					...prevSave!.player,
+					...updates,
+					lastLoginAt: Date.now(),
+				},
+			}),
+			() => console.log("Player data updated"),
+			source || "player_update"
+		);
 	};
 
 	/**
@@ -86,21 +115,27 @@ export const useGameSave = () => {
 	 * @param {string} eventId - 事件ID
 	 * @param {Partial<GameEventData>} data - 要更新的事件資料
 	 */
-	const updateEventData = (eventId: string, data: Partial<GameEventData>) => {
+	const updateEventData = async (
+		eventId: string,
+		data: Partial<GameEventData>,
+		source?: string
+	) => {
 		if (!saveData) return;
 
-		const updatedSave = {
-			...saveData,
-			events: {
-				...saveData.events,
-				[eventId]: {
-					...saveData.events[eventId],
-					...data,
+		await updateSaveData(
+			(prevSave) => ({
+				...prevSave!,
+				events: {
+					...prevSave!.events,
+					[eventId]: {
+						...prevSave!.events[eventId],
+						...data,
+					},
 				},
-			},
-		};
-
-		saveGameData(updatedSave);
+			}),
+			() => console.log(`Event ${eventId} updated`),
+			source || "event_update"
+		);
 	};
 
 	/**
@@ -109,7 +144,10 @@ export const useGameSave = () => {
 	 * @param {string} classId - 職業ID
 	 * @returns {GameSaveData} 新的存檔資料
 	 */
-	const createNewPlayer = (name: string, classId: string): GameSaveData => {
+	const createNewPlayer = async (
+		name: string,
+		classId: string
+	): Promise<GameSaveData> => {
 		const newSave: GameSaveData = {
 			player: {
 				id: uuidv4(),
@@ -180,7 +218,12 @@ export const useGameSave = () => {
 			version: CURRENT_VERSION,
 		};
 
-		saveGameData(newSave);
+		await updateSaveData(
+			() => newSave,
+			() => console.log("New player created"),
+			"new_player_creation"
+		);
+
 		return newSave;
 	};
 

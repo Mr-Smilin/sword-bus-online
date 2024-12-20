@@ -118,21 +118,21 @@ const ShopPanel = () => {
 	};
 
 	// 處理交易確認
-	const handleTradeConfirm = (quantity) => {
+	const handleTradeConfirm = async (quantity) => {
 		if (!selectedItem) return;
 
 		if (currentTab === "buy") {
 			// 購買邏輯
 			const totalPrice = selectedItem.basePrice * quantity;
-			if (deductCurrency("gold", totalPrice)) {
-				addToInventory(selectedItem.itemId, quantity);
+			if (await deductCurrency("gold", totalPrice)) {
+				await addToInventory(selectedItem.itemId, quantity);
 				updateDialog("thanks");
 			}
 		} else {
 			// 販賣邏輯
 			const totalPrice = selectedItem.buyPrice * quantity;
-			if (removeFromInventory(selectedItem.slot, quantity)) {
-				addCurrency("gold", totalPrice);
+			if (await removeFromInventory(selectedItem.slot, quantity)) {
+				await addCurrency("gold", totalPrice);
 				updateDialog("thanks");
 			}
 		}

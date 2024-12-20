@@ -16,7 +16,7 @@ import { classes } from "../../data/classes";
  */
 export const useGameEquipment = (
 	playerData: PlayerData | undefined,
-	onPlayerChange?: (newPlayer: PlayerData) => void
+	onPlayerChange?: (newPlayer: PlayerData) => Promise<void>
 ) => {
 	// 裝備狀態
 	const [equipment, setEquipment] = useState<EquipmentSlots>({
@@ -124,7 +124,7 @@ export const useGameEquipment = (
 	 * @param weapon 要裝備的武器
 	 */
 	const equipWeapon = useCallback(
-		(weapon: Weapon): boolean => {
+		async (weapon: Weapon): Promise<boolean> => {
 			if (!canEquipWeapon(weapon)) return false;
 
 			// 更新裝備狀態
@@ -135,7 +135,7 @@ export const useGameEquipment = (
 
 			// 更新玩家資料
 			if (onPlayerChange && playerData) {
-				onPlayerChange({
+				await onPlayerChange({
 					...playerData,
 					equipped: {
 						...playerData.equipped,
@@ -152,7 +152,7 @@ export const useGameEquipment = (
 	/**
 	 * 移除武器裝備
 	 */
-	const unequipWeapon = useCallback(() => {
+	const unequipWeapon = useCallback(async () => {
 		// 更新裝備狀態
 		setEquipment((prev) => ({
 			...prev,
@@ -161,7 +161,7 @@ export const useGameEquipment = (
 
 		// 更新玩家資料
 		if (onPlayerChange && playerData) {
-			onPlayerChange({
+			await onPlayerChange({
 				...playerData,
 				equipped: {
 					...playerData.equipped,

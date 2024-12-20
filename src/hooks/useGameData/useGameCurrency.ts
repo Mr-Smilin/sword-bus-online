@@ -8,7 +8,7 @@ import { PlayerData, CurrencyType } from "../../data/type";
  */
 export const useGameCurrency = (
 	playerData: PlayerData | undefined,
-	onPlayerChange?: (newPlayer: PlayerData) => void
+	onPlayerChange?: (newPlayer: PlayerData) => Promise<void>
 ) => {
 	/**
 	 * 增加指定類型的貨幣
@@ -16,7 +16,7 @@ export const useGameCurrency = (
 	 * @param amount 金額(需為正數)
 	 */
 	const addCurrency = useCallback(
-		(type: CurrencyType, amount: number): boolean => {
+		async (type: CurrencyType, amount: number): Promise<boolean> => {
 			if (!playerData || amount <= 0) return false;
 
 			const newPlayer = {
@@ -27,7 +27,7 @@ export const useGameCurrency = (
 				},
 			};
 
-			onPlayerChange?.(newPlayer);
+			await onPlayerChange?.(newPlayer);
 			return true;
 		},
 		[playerData, onPlayerChange]
@@ -40,7 +40,7 @@ export const useGameCurrency = (
 	 * @returns 是否扣除成功
 	 */
 	const deductCurrency = useCallback(
-		(type: CurrencyType, amount: number): boolean => {
+		async (type: CurrencyType, amount: number): Promise<boolean> => {
 			if (!playerData || amount <= 0) return false;
 
 			// 檢查餘額是否足夠
@@ -54,7 +54,7 @@ export const useGameCurrency = (
 				},
 			};
 
-			onPlayerChange?.(newPlayer);
+			await onPlayerChange?.(newPlayer);
 			return true;
 		},
 		[playerData, onPlayerChange]
@@ -93,12 +93,12 @@ export const useGameCurrency = (
 	 * @param toAmount 獲得金額
 	 */
 	const exchangeCurrency = useCallback(
-		(
+		async (
 			fromType: CurrencyType,
 			fromAmount: number,
 			toType: CurrencyType,
 			toAmount: number
-		): boolean => {
+		): Promise<boolean> => {
 			if (!playerData || fromAmount <= 0 || toAmount <= 0) return false;
 			if (fromType === toType) return false;
 
@@ -114,7 +114,7 @@ export const useGameCurrency = (
 				},
 			};
 
-			onPlayerChange?.(newPlayer);
+			await onPlayerChange?.(newPlayer);
 			return true;
 		},
 		[playerData, hasSufficientCurrency, onPlayerChange]
