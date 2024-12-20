@@ -1,3 +1,5 @@
+// reducers/rootReducer.ts
+
 import { GameSaveData, PlayerData } from "../data/type";
 import { GameAction } from "./actionTypes";
 import { currencyReducer } from "./state/currencyReducer";
@@ -19,7 +21,7 @@ export const rootReducer = (
     if (!state) return null;
 
     // 根據 action type 來更新對應的 state
-    let newPlayerData: PlayerData = state.player;
+    let newPlayerData: PlayerData;
 
     switch (action.type) {
         case "UPDATE_CURRENCY":
@@ -29,12 +31,83 @@ export const rootReducer = (
             };
             break;
 
-        case "UPDATE_INVENTORY":
+        case "UPDATE_INVENTORY": {
             newPlayerData = {
                 ...state.player,
                 inventory: inventoryReducer(state.player.inventory, action),
             };
             break;
+        }
+
+        case "UPDATE_MAP": {
+            const mapAction = action.payload;
+            let newMapData = state.player.mapSaveData;
+
+            switch (mapAction.type) {
+                case "UPDATE_AREA_PROGRESS":
+                    newMapData = {
+                        ...newMapData,
+                        areaProgress: {
+                            ...newMapData.areaProgress,
+                            [mapAction.payload.areaId]: {
+                                ...newMapData.areaProgress[
+                                    mapAction.payload.areaId
+                                ],
+                                ...mapAction.payload.progress,
+                            },
+                        },
+                    };
+                    break;
+
+                case "UNLOCK_AREAS":
+                    newMapData = {
+                        ...newMapData,
+                        unlockedAreas: Array.from(
+                            new Set([
+                                ...newMapData.unlockedAreas,
+                                ...mapAction.payload.areaIds,
+                            ]),
+                        ),
+                    };
+                    break;
+
+                case "RECORD_BOSS_DEFEAT":
+                    newMapData = {
+                        ...newMapData,
+                        defeatedBosses: Array.from(
+                            new Set([
+                                ...newMapData.defeatedBosses,
+                                ...mapAction.payload.bossIds,
+                            ]),
+                        ),
+                    };
+                    break;
+
+                case "UPDATE_DUNGEON_PROGRESS":
+                    newMapData = {
+                        ...newMapData,
+                        maxDungeonProgress: {
+                            ...newMapData.maxDungeonProgress,
+                            [mapAction.payload.dungeonId]:
+                                mapAction.payload.maxProgress,
+                        },
+                    };
+                    break;
+
+                case "UPDATE_MAP_DATA":
+                    newMapData = {
+                        ...newMapData,
+                        ...mapAction.payload,
+                    };
+                    break;
+            }
+
+            newPlayerData = {
+                ...state.player,
+                mapSaveData: newMapData,
+            };
+            break;
+        }
 
         case "UPDATE_STATS":
             newPlayerData = {
@@ -53,13 +126,6 @@ export const rootReducer = (
                     state.player.locationData,
                     action,
                 ),
-            };
-            break;
-
-        case "UPDATE_MAP":
-            newPlayerData = {
-                ...state.player,
-                mapSaveData: mapReducer(state.player.mapSaveData, action),
             };
             break;
 

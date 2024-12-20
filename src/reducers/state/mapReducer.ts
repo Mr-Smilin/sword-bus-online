@@ -5,56 +5,54 @@ export const mapReducer = (
     state: MapSaveData,
     action: MapAction,
 ): MapSaveData => {
-    switch (action.type) {
-        case "UPDATE_MAP":
-            // 更新地圖進度時需要考慮：
-            // 1. 探索度不能超過上限
-            // 2. 已解鎖區域不能重複
-            // 3. BOSS擊殺記錄不能重複
-            if (action.payload.areaProgress) {
-                return {
-                    ...state,
-                    areaProgress: {
-                        ...state.areaProgress,
-                        ...action.payload.areaProgress,
-                    },
-                };
-            }
-            if (action.payload.unlockedAreas) {
-                return {
-                    ...state,
-                    unlockedAreas: Array.from(
-                        new Set([
-                            ...state.unlockedAreas,
-                            ...action.payload.unlockedAreas,
-                        ]),
-                    ),
-                };
-            }
-            if (action.payload.defeatedBosses) {
-                return {
-                    ...state,
-                    defeatedBosses: Array.from(
-                        new Set([
-                            ...state.defeatedBosses,
-                            ...action.payload.defeatedBosses,
-                        ]),
-                    ),
-                };
-            }
-            if (action.payload.maxDungeonProgress) {
-                return {
-                    ...state,
-                    maxDungeonProgress: {
-                        ...state.maxDungeonProgress,
-                        ...action.payload.maxDungeonProgress,
-                    },
-                };
-            }
+    if (action.type !== "UPDATE_MAP") return state;
+
+    const { type, payload } = action.payload;
+
+    switch (type) {
+        case "UPDATE_AREA_PROGRESS":
             return {
                 ...state,
-                ...action.payload,
+                areaProgress: {
+                    ...state.areaProgress,
+                    [payload.areaId]: {
+                        ...state.areaProgress[payload.areaId],
+                        ...payload.progress,
+                    },
+                },
             };
+
+        case "UNLOCK_AREAS":
+            return {
+                ...state,
+                unlockedAreas: Array.from(
+                    new Set([...state.unlockedAreas, ...payload.areaIds]),
+                ),
+            };
+
+        case "RECORD_BOSS_DEFEAT":
+            return {
+                ...state,
+                defeatedBosses: Array.from(
+                    new Set([...state.defeatedBosses, ...payload.bossIds]),
+                ),
+            };
+
+        case "UPDATE_DUNGEON_PROGRESS":
+            return {
+                ...state,
+                maxDungeonProgress: {
+                    ...state.maxDungeonProgress,
+                    [payload.dungeonId]: payload.maxProgress,
+                },
+            };
+
+        case "UPDATE_MAP_DATA":
+            return {
+                ...state,
+                ...payload,
+            };
+
         default:
             return state;
     }

@@ -2,9 +2,12 @@ import {
     CurrencyType,
     InventoryState,
     InventoryData,
+    InventoryItem,
+    InventoryAction as InvAction,
     CharacterStats,
     LocationData,
     MapSaveData,
+    AreaProgress,
     PlayerData,
 } from "../data/type";
 
@@ -18,9 +21,24 @@ export type CurrencyAction = {
 };
 
 // 背包相關
+export type InventoryActionType =
+    | "ADD_ITEM" // 添加物品
+    | "REMOVE_ITEM" // 移除物品
+    | "MOVE_ITEM" // 移動物品
+    | "SPLIT_STACK" // 拆分堆疊
+    | "MERGE_STACK" // 合併堆疊
+    | "SORT_INVENTORY" // 整理背包
+    | "USE_ITEM"; // 使用物品
+
+// 背包相關的 action
 export type InventoryAction = {
     type: "UPDATE_INVENTORY";
-    payload: InventoryData;
+    payload: {
+        // 背包狀態
+        items: InventoryItem[];
+        // 操作紀錄
+        historyAction: InvAction;
+    };
 };
 
 // 角色狀態相關
@@ -36,9 +54,22 @@ export type LocationAction = {
 };
 
 // 地圖相關
+type MapActionType =
+    | {
+          type: "UPDATE_AREA_PROGRESS";
+          payload: { areaId: string; progress: AreaProgress };
+      }
+    | { type: "UNLOCK_AREAS"; payload: { areaIds: string[] } }
+    | { type: "RECORD_BOSS_DEFEAT"; payload: { bossIds: string[] } }
+    | {
+          type: "UPDATE_DUNGEON_PROGRESS";
+          payload: { dungeonId: string; maxProgress: number };
+      }
+    | { type: "UPDATE_MAP_DATA"; payload: Partial<MapSaveData> };
+
 export type MapAction = {
     type: "UPDATE_MAP";
-    payload: Partial<MapSaveData>;
+    payload: MapActionType;
 };
 
 // 玩家資料相關
