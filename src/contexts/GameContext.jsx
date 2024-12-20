@@ -32,7 +32,9 @@ export const GameProvider = ({ children }) => {
 		saveData?.player,
 		// 當角色情報改變時，更新存檔
 		(newPlayer) => {
-			updatePlayerData(newPlayer);
+			if (JSON.stringify(newPlayer) !== JSON.stringify(saveData?.player)) {
+				updatePlayerData(newPlayer);
+			}
 		}
 	);
 
