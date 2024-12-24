@@ -33,10 +33,10 @@ export const updateLocation = (location: LocationData): LocationAction => ({
  * 更新地圖資料
  * @param mapData 要更新的地圖資料
  */
-export const updateMap = (mapData: Partial<MapSaveData>): MapAction => ({
-    type: "UPDATE_MAP",
-    payload: mapData,
-});
+// export const updateMap = (mapData: Partial<MapSaveData>): MapAction => ({
+//     type: "UPDATE_MAP",
+//     payload: mapData,
+// });
 
 /**
  * 更新玩家資料

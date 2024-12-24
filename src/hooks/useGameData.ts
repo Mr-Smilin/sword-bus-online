@@ -1,1306 +1,1081 @@
-import { useCallback, useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { flushSync } from "react-dom";
-import {
-  BaseCharacterStats,
-  CharacterStats,
-  PlayerData,
-  Item,
-  InventoryState,
-  InventoryItem,
-  Weapon,
-  Class,
-  Skill,
-  WeaponType,
-  EffectType,
-  CurrencyType,
-  CurrencyData,
-} from "../data/type";
 import { toast } from "../utils/toast";
+import {
+    GameSaveData,
+    PlayerData,
+    CurrencyType,
+    Item,
+    InventoryItem,
+    InventoryState,
+    Weapon,
+    Class,
+    Skill,
+    WeaponType,
+    EffectType,
+} from "../data/type";
 import { items } from "../data/item";
 import { weapons } from "../data/weapons";
-import { classes, classMap } from "../data/classes/";
-import { skills, skillsByClass, skillMap } from "../data/skills/";
-import {
-  DEFAULT_INVENTORY_SETTINGS,
-  ITEM_TYPE_WEIGHT,
-} from "../data/inventory/settings";
-
-/**
- * 角色裝備欄位類型定義
- */
-interface EquipmentSlots {
-  weapon: Weapon | null;
-}
-
-/**
- * 計算下一等級所需經驗值
- * @param level 當前等級
- * @returns 升級所需經驗值
- */
-const calculateExpToNextLevel = (level: number): number => {
-  return Math.floor(100 * Math.pow(1.5, level - 1));
-};
-
-/**
- * 計算角色成長屬性
- * @param baseStats 基礎屬性
- * @param growthStats 成長係數
- * @param level 當前等級
- * @returns 計算後的屬性值
- */
-const calculateStatGrowth = (
-  baseStats: BaseCharacterStats,
-  growthStats: Class["growthStats"],
-  level: number
-): CharacterStats => {
-  return {
-    ...baseStats,
-    level,
-    experience: 0,
-    nextLevelExp: calculateExpToNextLevel(level),
-    health: Math.floor(baseStats.health + growthStats.health * (level - 1)),
-    currentHealth: Math.floor(
-      baseStats.health + growthStats.health * (level - 1)
-    ),
-    mana: Math.floor(baseStats.mana + growthStats.mana * (level - 1)),
-    currentMana: Math.floor(baseStats.mana + growthStats.mana * (level - 1)),
-    strength: Math.floor(
-      baseStats.strength + growthStats.strength * (level - 1)
-    ),
-    dexterity: Math.floor(
-      baseStats.dexterity + growthStats.dexterity * (level - 1)
-    ),
-    intelligence: Math.floor(
-      baseStats.intelligence + growthStats.intelligence * (level - 1)
-    ),
-  };
-};
+import { classes } from "../data/classes";
+import { skills, skillsByClass } from "../data/skills";
+import { DEFAULT_INVENTORY_SETTINGS } from "../data/inventory/settings";
+import { GameAction } from "../reducers/actionTypes";
 
 /**
  * 遊戲數據管理 Hook
- * @param playerData 玩家資料
- * @param onPlayerChange 角色情報更新回調
- * @returns 遊戲數據和操作方法
+ * @param saveData 遊戲存檔資料
+ * @param dispatch Reducer 的 dispatch 方法
  */
 export const useGameData = (
-  playerData?: PlayerData,
-  onPlayerChange?: (newPlayer: PlayerData) => void
+    saveData: GameSaveData | null,
+    dispatch: React.Dispatch<GameAction>,
 ) => {
-  // 當前職業資訊
-  const [currentClass, setCurrentClass] = useState<Class | null>(null);
+    const playerData = saveData?.player;
+    const inventoryState = playerData?.inventory.state;
 
-  // 背包系統
-  const [inventoryState, setInventoryState] = useState<InventoryState>({
-    items: [],
-    maxSlots: DEFAULT_INVENTORY_SETTINGS.defaultMaxSlots,
-  });
+    //#region 貨幣系統
 
-  // 裝備系統
-  const [equipment, setEquipment] = useState<EquipmentSlots>({
-    weapon: null,
-  });
+    /**
+     * 添加指定類型的貨幣
+     * @param type 貨幣類型
+     * @param amount 金額(需為正數)
+     * @returns 是否添加成功
+     */
+    const addCurrency = useCallback(
+        (type: CurrencyType, amount: number): boolean => {
+            if (!playerData || amount <= 0) return false;
 
-  // 技能冷卻系統
-  const [skillCooldowns, setSkillCooldowns] = useState<Record<string, number>>(
-    {}
-  );
+            dispatch({
+                type: "UPDATE_CURRENCY",
+                payload: {
+                    type,
+                    amount: (playerData.currency[type] || 0) + amount,
+                },
+            });
 
-  // 角色效果系統
-  const [activeEffects, setActiveEffects] = useState<
-    Record<EffectType, number>
-  >({} as Record<EffectType, number>);
-
-  /**
-   * 初始化職業系統
-   */
-  const initializeClassSystem = useCallback((data: PlayerData) => {
-    if (!!data.currentClassId) {
-      setCurrentClass(classes[data.currentClassId]);
-    }
-  }, []);
-
-  /**
-   * 初始化背包系統
-   */
-  const initializeInventorySystem = useCallback((data: PlayerData) => {
-    if (!!data.inventory?.state) {
-      setInventoryState(data.inventory.state);
-    } else {
-      // 如果沒有背包狀態，則設置預設狀態
-      setInventoryState({
-        items: [],
-        maxSlots: DEFAULT_INVENTORY_SETTINGS.defaultMaxSlots,
-      });
-    }
-  }, []);
-
-  /**
-   * 初始化裝備系統
-   */
-  const initializeEquipmentSystem = useCallback((data: PlayerData) => {
-    if (!!data.equipped) {
-      const weapon = data.equipped.weapon
-        ? weapons.find((w) => w.id === data.equipped.weapon)
-        : null;
-      setEquipment({ weapon });
-    }
-  }, []);
-
-  /**
-   * 初始化效果系統
-   */
-  const initializeEffectSystem = useCallback((data: PlayerData) => {
-    // 重置效果系統
-    setActiveEffects({} as Record<EffectType, number>);
-    setSkillCooldowns({});
-  }, []);
-
-  /**
-   * 初始化
-   */
-  useEffect(() => {
-    if (!playerData) return;
-
-    try {
-      // 職業系統初始化
-      initializeClassSystem(playerData);
-
-      // 背包系統初始化
-      initializeInventorySystem(playerData);
-
-      // 裝備系統初始化
-      initializeEquipmentSystem(playerData);
-
-      // 效果系統初始化
-      initializeEffectSystem(playerData);
-    } catch (error) {
-      console.error("Failed to initialize game systems:", error);
-      // 可以在這裡添加錯誤處理邏輯
-    }
-  }, [
-    playerData,
-    initializeClassSystem,
-    initializeInventorySystem,
-    initializeEquipmentSystem,
-    initializeEffectSystem,
-  ]);
-
-  // 更新當前生命值
-  const updateCurrentHealth = useCallback(
-    (amount: number) => {
-      if (!playerData?.characterStats) return;
-      const maxHealth = playerData.characterStats.health;
-      const newStats = {
-        ...playerData,
-        characterStats: {
-          ...playerData.characterStats,
-          currentHealth: Math.min(
-            Math.max(0, playerData.characterStats.currentHealth + amount),
-            maxHealth
-          ),
+            return true;
         },
-      };
-      onPlayerChange?.(newStats);
-    },
-    [playerData, onPlayerChange]
-  );
+        [playerData, dispatch],
+    );
 
-  // 更新當前魔力值
-  const updateCurrentMana = useCallback(
-    (amount: number) => {
-      if (!playerData?.characterStats) return;
-      const maxMana = playerData.characterStats.mana;
-      const newStats = {
-        ...playerData,
-        characterStats: {
-          ...playerData.characterStats,
-          currentMana: Math.min(
-            Math.max(0, playerData.characterStats.currentHealth + amount),
-            maxMana
-          ),
+    /**
+     * 扣除指定類型的貨幣
+     * @param type 貨幣類型
+     * @param amount 金額(需為正數)
+     * @returns 是否扣除成功
+     */
+    const deductCurrency = useCallback(
+        (type: CurrencyType, amount: number): boolean => {
+            if (!playerData || amount <= 0) return false;
+
+            // 檢查餘額是否足夠
+            if ((playerData.currency[type] || 0) < amount) return false;
+
+            dispatch({
+                type: "UPDATE_CURRENCY",
+                payload: {
+                    type,
+                    amount: (playerData.currency[type] || 0) - amount,
+                },
+            });
+
+            return true;
         },
-      };
-      onPlayerChange?.(newStats);
-    },
-    [playerData, onPlayerChange]
-  );
+        [playerData, dispatch],
+    );
 
-  // 根據等級更新當前狀態
-  const updatePlayerByLevel = useCallback(
-    (level: number, doUpdate: boolean = true) => {
-      if (!level || level <= 0 || !playerData?.characterStats || !currentClass)
-        return;
+    /**
+     * 檢查指定類型的貨幣是否足夠
+     * @param type 貨幣類型
+     * @param amount 要檢查的金額
+     */
+    const hasSufficientCurrency = useCallback(
+        (type: CurrencyType, amount: number): boolean => {
+            if (!playerData || amount <= 0) return false;
+            return (playerData.currency[type] || 0) >= amount;
+        },
+        [playerData],
+    );
 
-      // 先計算基礎屬性成長
-      const baseStats = calculateStatGrowth(
-        currentClass.baseStats,
-        currentClass.growthStats,
-        level
-      );
+    /**
+     * 獲取指定類型的貨幣餘額
+     * @param type 貨幣類型
+     */
+    const getCurrencyBalance = useCallback(
+        (type: CurrencyType): number => {
+            if (!playerData) return 0;
+            return playerData.currency[type] || 0;
+        },
+        [playerData],
+    );
 
-      // 計算升級所需經驗值
-      const nextLevelExp = calculateExpToNextLevel(level);
+    //#endregion
 
-      // 檢查職業進階獎勵
-      const levelBonuses = currentClass.progression
-        .filter((prog) => prog.level <= level)
-        .reduce(
-          (acc, prog) => ({
-            strength: (acc.strength || 0) + (prog.attributeBonus.strength || 0),
-            dexterity:
-              (acc.dexterity || 0) + (prog.attributeBonus.dexterity || 0),
-            intelligence:
-              (acc.intelligence || 0) + (prog.attributeBonus.intelligence || 0),
-            health: (acc.health || 0) + (prog.attributeBonus.health || 0),
-            mana: (acc.mana || 0) + (prog.attributeBonus.mana || 0),
-          }),
-          {
-            strength: 0,
-            dexterity: 0,
-            intelligence: 0,
-            health: 0,
-            mana: 0,
-          }
+    //#region 背包系統
+
+    /**
+     * 尋找空的背包格子
+     * @returns 找到的空格索引，找不到返回-1
+     */
+    const findEmptySlot = useCallback((): number => {
+        if (!inventoryState) return -1;
+        const usedSlots = new Set(
+            inventoryState.items.map((item) => item.slot),
         );
+        for (let i = 0; i < DEFAULT_INVENTORY_SETTINGS.defaultMaxSlots; i++) {
+            if (!usedSlots.has(i)) return i;
+        }
+        return -1;
+    }, [inventoryState]);
 
-      // 合併基礎屬性和獎勵
-      const finalStats = {
-        ...baseStats,
-        level,
-        nextLevelExp,
-        health: baseStats.health + (levelBonuses.health || 0),
-        currentHealth: baseStats.health + (levelBonuses.health || 0), // 升級時回滿血量
-        mana: baseStats.mana + (levelBonuses.mana || 0),
-        currentMana: baseStats.mana + (levelBonuses.mana || 0), // 升級時回滿魔力
-        strength: baseStats.strength + (levelBonuses.strength || 0),
-        dexterity: baseStats.dexterity + (levelBonuses.dexterity || 0),
-        intelligence: baseStats.intelligence + (levelBonuses.intelligence || 0),
-        experience: 0, // 升級後經驗歸零
-      };
+    /**
+     * 將物品添加到背包
+     * @param itemId 物品ID
+     * @param quantity 數量
+     * @returns 是否添加成功
+     */
+    const addToInventory = useCallback(
+        (itemId: string, quantity: number = 1): boolean => {
+            // 基礎檢查
+            if (!inventoryState || quantity <= 0) return false;
+            const item = items.find((i) => i.id === itemId);
+            if (!item) return false;
 
-      // 檢查當前等級可以解鎖的技能
-      const classProgression = currentClass.progression.find(
-        (prog) => prog.level === level
-      );
+            // 檢查背包是否已滿
+            if (inventoryState.items.length >= inventoryState.maxSlots)
+                return false;
 
-      // 取得已解鎖技能列表
-      const currentUnlockedSkills = new Set(
-        playerData.classProgress?.[currentClass.id]?.unlockedSkills || []
-      );
+            // 更新背包
+            dispatch({
+                type: "UPDATE_INVENTORY",
+                payload: {
+                    items: (() => {
+                        let newItems = [...inventoryState.items];
+                        let remainingQuantity = quantity;
 
-      // 將新技能加入集合中 (Set 會自動去除重複項目)
-      classProgression?.unlockedSkills.forEach((skillId) => {
-        currentUnlockedSkills.add(skillId);
-      });
+                        // 如果物品可堆疊，先嘗試堆疊到現有物品上
+                        if (item.stackable) {
+                            const maxStack =
+                                DEFAULT_INVENTORY_SETTINGS.maxStackByType[
+                                    item.type
+                                ] || 1;
 
-      // 建立新的玩家資料
-      const newPlayer = {
-        ...playerData,
-        characterStats: finalStats,
-        classProgress: {
-          ...playerData.classProgress,
-          [currentClass.id]: {
-            ...playerData.classProgress?.[currentClass.id],
-            unlockedSkills: Array.from(currentUnlockedSkills),
-          },
+                            newItems = newItems.map((existingItem) => {
+                                if (
+                                    existingItem.itemId === itemId &&
+                                    existingItem.quantity < maxStack
+                                ) {
+                                    const canAdd = Math.min(
+                                        remainingQuantity,
+                                        maxStack - existingItem.quantity,
+                                    );
+                                    remainingQuantity -= canAdd;
+
+                                    return {
+                                        ...existingItem,
+                                        quantity:
+                                            existingItem.quantity + canAdd,
+                                    };
+                                }
+                                return existingItem;
+                            });
+                        }
+
+                        // 如果還有剩餘數量，創建新的物品堆疊
+                        while (
+                            remainingQuantity > 0 &&
+                            newItems.length < inventoryState.maxSlots
+                        ) {
+                            const emptySlot = findEmptySlot();
+                            if (emptySlot === -1) break;
+
+                            const maxStack = item.stackable
+                                ? DEFAULT_INVENTORY_SETTINGS.maxStackByType[
+                                      item.type
+                                  ] || 1
+                                : 1;
+                            const stackQuantity = Math.min(
+                                remainingQuantity,
+                                maxStack,
+                            );
+
+                            newItems.push({
+                                itemId,
+                                quantity: stackQuantity,
+                                slot: emptySlot,
+                            });
+
+                            remainingQuantity -= stackQuantity;
+                        }
+
+                        return newItems;
+                    })(),
+                    historyAction: {
+                        type: "add",
+                        itemId,
+                        quantity,
+                        timestamp: Date.now(),
+                    },
+                },
+            });
+
+            return true;
         },
-      };
+        [inventoryState, findEmptySlot, dispatch],
+    );
 
-      // 根據 doUpdate 決定是更新還是返回
-      if (doUpdate) {
-        onPlayerChange?.(newPlayer);
-      } else {
-        return newPlayer;
-      }
-    },
-    [playerData, currentClass, onPlayerChange]
-  );
+    /**
+     * 從背包移除物品
+     * @param slot 格子位置
+     * @param quantity 數量
+     * @returns 是否移除成功
+     */
+    const removeFromInventory = useCallback(
+        (slot: number, quantity: number = 1): boolean => {
+            if (!inventoryState || quantity <= 0) return false;
 
-  /**
-   * 增加經驗值並處理升級
-   */
-  const gainExperience = useCallback(
-    (amount: number): void => {
-      if (!playerData?.characterStats || !currentClass) return;
-      const characterStats = playerData.characterStats;
+            const item = inventoryState.items.find((i) => i.slot === slot);
+            if (!item || item.quantity < quantity) return false;
 
-      const newStats = (() => {
-        let newExp = characterStats.experience + amount;
-        let newLevel = characterStats.level;
-        let newNextLevelExp = characterStats.nextLevelExp;
+            dispatch({
+                type: "UPDATE_INVENTORY",
+                payload: {
+                    items:
+                        item.quantity <= quantity
+                            ? inventoryState.items.filter(
+                                  (i) => i.slot !== slot,
+                              )
+                            : inventoryState.items.map((i) =>
+                                  i.slot === slot
+                                      ? {
+                                            ...i,
+                                            quantity: i.quantity - quantity,
+                                        }
+                                      : i,
+                              ),
+                    historyAction: {
+                        type: "remove",
+                        itemId: item.itemId,
+                        quantity,
+                        fromSlot: slot,
+                        timestamp: Date.now(),
+                    },
+                },
+            });
 
-        // 檢查是否升級
-        while (newExp >= newNextLevelExp) {
-          newExp -= newNextLevelExp;
-          newLevel++;
-          newNextLevelExp = calculateExpToNextLevel(newLevel);
-        }
+            return true;
+        },
+        [inventoryState, dispatch],
+    );
 
-        // 如果升級了才計算新的屬性值
-        if (newLevel > characterStats.level) {
-          const newPlayer = updatePlayerByLevel(newLevel, false);
-          return {
-            ...newPlayer,
-            characterStats: {
-              ...newPlayer.characterStats,
-              experience: newExp,
+    /**
+     * 移動背包物品
+     * @param fromSlot 來源格子
+     * @param toSlot 目標格子
+     * @returns 是否移動成功
+     */
+    const moveItem = useCallback(
+        (fromSlot: number, toSlot: number): boolean => {
+            if (!inventoryState || fromSlot === toSlot) return false;
+
+            const fromItem = inventoryState.items.find(
+                (i) => i.slot === fromSlot,
+            );
+            if (!fromItem) return false;
+
+            const toItem = inventoryState.items.find((i) => i.slot === toSlot);
+
+            // 檢查是否可以堆疊
+            if (toItem && toItem.itemId === fromItem.itemId) {
+                const itemData = items.find((i) => i.id === toItem.itemId);
+                if (itemData?.stackable) {
+                    const maxStack =
+                        DEFAULT_INVENTORY_SETTINGS.maxStackByType[
+                            itemData.type
+                        ];
+                    const totalQuantity = fromItem.quantity + toItem.quantity;
+
+                    if (totalQuantity <= maxStack) {
+                        // 可以完全堆疊
+                        dispatch({
+                            type: "UPDATE_INVENTORY",
+                            payload: {
+                                items: inventoryState.items
+                                    .filter((i) => i.slot !== fromSlot)
+                                    .map((i) =>
+                                        i.slot === toSlot
+                                            ? { ...i, quantity: totalQuantity }
+                                            : i,
+                                    ),
+                                historyAction: {
+                                    type: "move",
+                                    itemId: fromItem.itemId,
+                                    quantity: fromItem.quantity,
+                                    fromSlot,
+                                    toSlot,
+                                    timestamp: Date.now(),
+                                },
+                            },
+                        });
+                        return true;
+                    }
+                }
+            }
+
+            // 直接交換位置
+            dispatch({
+                type: "UPDATE_INVENTORY",
+                payload: {
+                    items: inventoryState.items.map((i) => {
+                        if (i.slot === fromSlot) return { ...i, slot: toSlot };
+                        if (i.slot === toSlot) return { ...i, slot: fromSlot };
+                        return i;
+                    }),
+                    historyAction: {
+                        type: "move",
+                        itemId: fromItem.itemId,
+                        quantity: fromItem.quantity,
+                        fromSlot,
+                        toSlot,
+                        timestamp: Date.now(),
+                    },
+                },
+            });
+
+            return true;
+        },
+        [inventoryState, dispatch],
+    );
+
+    /**
+     * 拆分堆疊
+     * @param fromSlot 來源格子
+     * @param toSlot 目標格子
+     * @param quantity 拆分數量
+     * @returns 是否拆分成功
+     */
+    const splitStack = useCallback(
+        (fromSlot: number, toSlot: number, quantity: number): boolean => {
+            if (!inventoryState || quantity <= 0) return false;
+
+            const sourceItem = inventoryState.items.find(
+                (i) => i.slot === fromSlot,
+            );
+            if (!sourceItem || sourceItem.quantity <= quantity) return false;
+
+            const targetItem = inventoryState.items.find(
+                (i) => i.slot === toSlot,
+            );
+            if (targetItem) {
+                // 目標格有物品時，檢查堆疊
+                if (targetItem.itemId !== sourceItem.itemId) return false;
+
+                const itemData = items.find((i) => i.id === sourceItem.itemId);
+                if (!itemData?.stackable) return false;
+
+                const maxStack =
+                    DEFAULT_INVENTORY_SETTINGS.maxStackByType[itemData.type];
+                if (targetItem.quantity + quantity > maxStack) return false;
+            }
+
+            dispatch({
+                type: "UPDATE_INVENTORY",
+                payload: {
+                    items: targetItem
+                        ? inventoryState.items.map((item) => {
+                              if (item.slot === fromSlot) {
+                                  return {
+                                      ...item,
+                                      quantity: item.quantity - quantity,
+                                  };
+                              }
+                              if (item.slot === toSlot) {
+                                  return {
+                                      ...item,
+                                      quantity: item.quantity + quantity,
+                                  };
+                              }
+                              return item;
+                          })
+                        : [
+                              ...inventoryState.items.map((item) =>
+                                  item.slot === fromSlot
+                                      ? {
+                                            ...item,
+                                            quantity: item.quantity - quantity,
+                                        }
+                                      : item,
+                              ),
+                              {
+                                  itemId: sourceItem.itemId,
+                                  quantity,
+                                  slot: toSlot,
+                              },
+                          ],
+                    historyAction: {
+                        type: "split",
+                        itemId: sourceItem.itemId,
+                        quantity,
+                        fromSlot,
+                        toSlot,
+                        timestamp: Date.now(),
+                    },
+                },
+            });
+
+            return true;
+        },
+        [inventoryState, dispatch],
+    );
+
+    /**
+     * 整理背包
+     */
+    const sortInventory = useCallback(() => {
+        if (!inventoryState) return;
+
+        // 收集所有物品資訊
+        const itemsWithInfo = inventoryState.items
+            .map((invItem) => {
+                const itemData = items.find((i) => i.id === invItem.itemId);
+                return {
+                    ...invItem,
+                    itemData,
+                };
+            })
+            .filter((item) => !!item.itemData);
+
+        // 合併可堆疊物品
+        const itemGroups = new Map<string, typeof itemsWithInfo>();
+        itemsWithInfo.forEach((item) => {
+            const existingGroup = itemGroups.get(item.itemId) || [];
+            itemGroups.set(item.itemId, [...existingGroup, item]);
+        });
+
+        // 重新分配堆疊和位置
+        const newItems: InventoryItem[] = [];
+        let currentSlot = 0;
+
+        // 按類型和ID排序
+        Array.from(itemGroups.keys())
+            .sort((a, b) => {
+                const itemA = items.find((i) => i.id === a);
+                const itemB = items.find((i) => i.id === b);
+                if (!itemA || !itemB) return 0;
+                return (
+                    itemA.type.localeCompare(itemB.type) ||
+                    itemA.id.localeCompare(itemB.id)
+                );
+            })
+            .forEach((id) => {
+                const group = itemGroups.get(id) || [];
+                const itemData = items.find((i) => i.id === id);
+                if (!itemData) return;
+
+                if (itemData.stackable) {
+                    const maxStack =
+                        DEFAULT_INVENTORY_SETTINGS.maxStackByType[
+                            itemData.type
+                        ];
+                    let totalQuantity = group.reduce(
+                        (sum, item) => sum + item.quantity,
+                        0,
+                    );
+
+                    while (
+                        totalQuantity > 0 &&
+                        currentSlot < inventoryState.maxSlots
+                    ) {
+                        const stackSize = Math.min(totalQuantity, maxStack);
+                        newItems.push({
+                            itemId: id,
+                            quantity: stackSize,
+                            slot: currentSlot,
+                        });
+                        totalQuantity -= stackSize;
+                        currentSlot++;
+                    }
+                } else {
+                    group.forEach((item) => {
+                        if (currentSlot < inventoryState.maxSlots) {
+                            newItems.push({
+                                itemId: id,
+                                quantity: 1,
+                                slot: currentSlot,
+                            });
+                            currentSlot++;
+                        }
+                    });
+                }
+            });
+
+        dispatch({
+            type: "UPDATE_INVENTORY",
+            payload: {
+                items: newItems,
+                historyAction: {
+                    type: "sort",
+                    itemId: "",
+                    quantity: 0,
+                    timestamp: Date.now(),
+                },
             },
-          };
-        }
+        });
+    }, [inventoryState, dispatch]);
 
-        // 沒升級就只更新經驗值
-        return {
-          ...playerData,
-          characterStats: {
-            ...characterStats,
-            experience: newExp,
-            nextLevelExp: newNextLevelExp,
-          },
-        };
-      })();
+    //#endregion
 
-      onPlayerChange?.(newStats);
-    },
-    [playerData, currentClass, onPlayerChange, updatePlayerByLevel]
-  );
+    //#region 角色狀態系統
 
-  /**
-   * 尋找空的背包格子
-   */
-  const findEmptySlot = useCallback((): number => {
-    const usedSlots = new Set(inventoryState.items.map((item) => item.slot));
-    for (let i = 0; i < DEFAULT_INVENTORY_SETTINGS.defaultMaxSlots; i++) {
-      if (!usedSlots.has(i)) return i;
-    }
-    return -1;
-  }, [inventoryState]);
+    /**
+     * 更新當前生命值
+     * @param amount 變動量，正數增加，負數減少
+     */
+    const updateCurrentHealth = useCallback(
+        (amount: number) => {
+            if (!playerData?.characterStats) return;
 
-  /**
-   * 將物品添加到背包
-   */
-  const addToInventory = useCallback(
-    (itemId: string, quantity: number = 1): boolean => {
-      // 基礎檢查
-      if (quantity <= 0) return false;
+            const maxHealth = playerData.characterStats.health;
+            dispatch({
+                type: "UPDATE_STATS",
+                payload: {
+                    currentHealth: Math.min(
+                        Math.max(
+                            0,
+                            playerData.characterStats.currentHealth + amount,
+                        ),
+                        maxHealth,
+                    ),
+                },
+            });
+        },
+        [playerData, dispatch],
+    );
 
-      const item = items.find((i) => i.id === itemId);
-      if (!item) return false;
+    /**
+     * 更新當前魔力值
+     * @param amount 變動量，正數增加，負數減少
+     */
+    const updateCurrentMana = useCallback(
+        (amount: number) => {
+            if (!playerData?.characterStats) return;
 
-      // 檢查背包是否已滿
-      if (inventoryState.items.length >= inventoryState.maxSlots) return false;
+            const maxMana = playerData.characterStats.mana;
+            dispatch({
+                type: "UPDATE_STATS",
+                payload: {
+                    currentMana: Math.min(
+                        Math.max(
+                            0,
+                            playerData.characterStats.currentHealth + amount,
+                        ),
+                        maxMana,
+                    ),
+                },
+            });
+        },
+        [playerData, dispatch],
+    );
 
-      setInventoryState((prev) => {
-        let newItems = [...prev.items];
-        let remainingQuantity = quantity;
-
-        // 如果物品可堆疊，先嘗試堆疊到現有物品上
-        if (item.stackable) {
-          const maxStack =
-            DEFAULT_INVENTORY_SETTINGS.maxStackByType[item.type] || 1;
-
-          newItems = newItems.map((existingItem) => {
+    /**
+     * 根據等級更新角色狀態
+     * @param level 新等級
+     * @param doUpdate 是否執行更新，false 時只返回新的狀態
+     */
+    const updatePlayerByLevel = useCallback(
+        (level: number, doUpdate = true) => {
             if (
-              existingItem.itemId !== itemId ||
-              existingItem.quantity >= maxStack
+                !level ||
+                level <= 0 ||
+                !playerData?.characterStats ||
+                !playerData.currentClassId
+            )
+                return;
+
+            const currentClass = classes[playerData.currentClassId];
+            if (!currentClass) return;
+
+            // 計算基礎屬性成長
+            const baseStats = {
+                ...currentClass.baseStats,
+                level,
+                health: Math.floor(
+                    currentClass.baseStats.health +
+                        currentClass.growthStats.health * (level - 1),
+                ),
+                mana: Math.floor(
+                    currentClass.baseStats.mana +
+                        currentClass.growthStats.mana * (level - 1),
+                ),
+                strength: Math.floor(
+                    currentClass.baseStats.strength +
+                        currentClass.growthStats.strength * (level - 1),
+                ),
+                dexterity: Math.floor(
+                    currentClass.baseStats.dexterity +
+                        currentClass.growthStats.dexterity * (level - 1),
+                ),
+                intelligence: Math.floor(
+                    currentClass.baseStats.intelligence +
+                        currentClass.growthStats.intelligence * (level - 1),
+                ),
+                nextLevelExp: Math.floor(100 * Math.pow(1.5, level - 1)),
+            };
+
+            // 檢查職業進階獎勵
+            const levelBonuses = currentClass.progression
+                .filter((prog) => prog.level <= level)
+                .reduce(
+                    (acc, prog) => ({
+                        strength:
+                            (acc.strength || 0) +
+                            (prog.attributeBonus.strength || 0),
+                        dexterity:
+                            (acc.dexterity || 0) +
+                            (prog.attributeBonus.dexterity || 0),
+                        intelligence:
+                            (acc.intelligence || 0) +
+                            (prog.attributeBonus.intelligence || 0),
+                        health:
+                            (acc.health || 0) +
+                            (prog.attributeBonus.health || 0),
+                        mana: (acc.mana || 0) + (prog.attributeBonus.mana || 0),
+                    }),
+                    {
+                        strength: 0,
+                        dexterity: 0,
+                        intelligence: 0,
+                        health: 0,
+                        mana: 0,
+                    },
+                );
+
+            // 合併基礎屬性和獎勵
+            const finalStats = {
+                ...baseStats,
+                health: baseStats.health + (levelBonuses.health || 0),
+                currentHealth: baseStats.health + (levelBonuses.health || 0),
+                mana: baseStats.mana + (levelBonuses.mana || 0),
+                currentMana: baseStats.mana + (levelBonuses.mana || 0),
+                strength: baseStats.strength + (levelBonuses.strength || 0),
+                dexterity: baseStats.dexterity + (levelBonuses.dexterity || 0),
+                intelligence:
+                    baseStats.intelligence + (levelBonuses.intelligence || 0),
+                experience: 0,
+            };
+
+            // 檢查當前等級可以解鎖的技能
+            const classProgression = currentClass.progression.find(
+                (prog) => prog.level === level,
+            );
+
+            // 取得已解鎖技能列表
+            const currentUnlockedSkills = new Set(
+                playerData.classProgress?.[currentClass.id]?.unlockedSkills ||
+                    [],
+            );
+
+            // 將新技能加入集合中
+            classProgression?.unlockedSkills.forEach((skillId) => {
+                currentUnlockedSkills.add(skillId);
+            });
+
+            // 建立新的玩家資料
+            const newPlayer = {
+                ...playerData,
+                characterStats: finalStats,
+                classProgress: {
+                    ...playerData.classProgress,
+                    [currentClass.id]: {
+                        ...playerData.classProgress?.[currentClass.id],
+                        unlockedSkills: Array.from(currentUnlockedSkills),
+                    },
+                },
+            };
+
+            if (doUpdate) {
+                dispatch({
+                    type: "UPDATE_PLAYER",
+                    payload: newPlayer,
+                });
+            } else {
+                return newPlayer;
+            }
+        },
+        [playerData, dispatch],
+    );
+
+    /**
+     * 增加經驗值並處理升級
+     * @param amount 經驗值數量
+     */
+    const gainExperience = useCallback(
+        (amount: number): void => {
+            if (!playerData?.characterStats || !playerData.currentClassId)
+                return;
+
+            const stats = playerData.characterStats;
+            let newExp = stats.experience + amount;
+            let newLevel = stats.level;
+            let newNextLevelExp = stats.nextLevelExp;
+
+            // 檢查是否升級
+            while (newExp >= newNextLevelExp) {
+                newExp -= newNextLevelExp;
+                newLevel++;
+                newNextLevelExp = Math.floor(100 * Math.pow(1.5, newLevel - 1));
+            }
+
+            // 如果升級了才計算新的屬性值
+            if (newLevel > stats.level) {
+                const newPlayer = updatePlayerByLevel(newLevel, false);
+                if (newPlayer) {
+                    dispatch({
+                        type: "UPDATE_PLAYER",
+                        payload: {
+                            ...newPlayer,
+                            characterStats: {
+                                ...newPlayer.characterStats,
+                                experience: newExp,
+                            },
+                        },
+                    });
+                }
+            } else {
+                // 沒升級就只更新經驗值
+                dispatch({
+                    type: "UPDATE_STATS",
+                    payload: {
+                        experience: newExp,
+                        nextLevelExp: newNextLevelExp,
+                    },
+                });
+            }
+        },
+        [playerData, updatePlayerByLevel, dispatch],
+    );
+
+    /**
+     * 獲取當前經驗值百分比
+     */
+    const getExpPercentage = useCallback((): number => {
+        if (!playerData?.characterStats) return 0;
+        const { experience, nextLevelExp } = playerData.characterStats;
+        return (experience / nextLevelExp) * 100;
+    }, [playerData?.characterStats]);
+
+    //#endregion
+
+    //#region 技能系統
+
+    // 技能冷卻和效果系統狀態
+    const initialEffects: Record<EffectType, number> = {
+        stun: 0,
+        bleed: 0,
+        burn: 0,
+        freeze: 0,
+        poison: 0,
+        slow: 0,
+        silence: 0,
+        blind: 0,
+        weakness: 0,
+        defense_down: 0,
+        attack_up: 0,
+        defense_up: 0,
+        speed_up: 0,
+        regeneration: 0,
+        mana_regen: 0,
+        immune: 0,
+        stealth: 0,
+        taunt: 0,
+        reflect: 0,
+        life_steal: 0,
+        ignore_defense: 0,
+        shield: 0,
+    };
+    const [skillCooldowns, setSkillCooldowns] = useState<
+        Record<string, number>
+    >({});
+    const [activeEffects, setActiveEffects] =
+        useState<Record<EffectType, number>>(initialEffects);
+
+    /**
+     * 檢查技能是否擁有該技能
+     */
+    const isClassSkillAvailable = useCallback(
+        (classId: string, skillId: string): boolean =>
+            skillsByClass[classId]?.some((skill) => skill.id === skillId) ??
+            false,
+        [],
+    );
+
+    /**
+     * 檢查效果是否活動中
+     */
+    const isEffectActive = useCallback(
+        (effectType: EffectType): boolean => {
+            const endTime = activeEffects[effectType];
+            return endTime ? Date.now() < endTime : false;
+        },
+        [activeEffects],
+    );
+
+    /**
+     * 獲取技能冷卻時間
+     */
+    const getSkillCooldown = useCallback(
+        (skillId: string): number => {
+            const endTime = skillCooldowns[skillId];
+            if (!endTime) return 0;
+            const remainingTime = Math.max(0, endTime - Date.now()) / 1000;
+            return Math.round(remainingTime * 10) / 10;
+        },
+        [skillCooldowns],
+    );
+
+    /**
+     * 獲取所有當前職業已學習/未學習技能
+     */
+    const getAvailableSkills = useCallback(() => {
+        if (!playerData?.currentClassId) return { active: [], locked: [] };
+
+        const currentClass = classes[playerData.currentClassId];
+        if (!currentClass) return { active: [], locked: [] };
+
+        const checkRequirements = (skill: Skill): boolean => {
+            if (!skill.requirements) return true;
+
+            const { level, weapon } = skill.requirements;
+            const stats = playerData.characterStats;
+
+            if (level && (!stats || stats.level < level)) return false;
+
+            if (weapon && playerData.equipped.weapon) {
+                const equippedWeaponType = weapons.find(
+                    (w) => w.id === playerData.equipped.weapon,
+                )?.type;
+                return (
+                    !!equippedWeaponType && weapon.includes(equippedWeaponType)
+                );
+            }
+
+            return true;
+        };
+
+        // 所有基礎/進階/終極技能ID
+        const classSkillIds = [
+            ...currentClass.skills.basic,
+            ...currentClass.skills.advanced,
+            ...currentClass.skills.ultimate,
+        ];
+
+        // 當前職業可學技能列表
+        const classSkillList = skillsByClass[playerData.currentClassId] || [];
+
+        // 額外已學技能列表
+        const unlockedSkills =
+            playerData.classProgress?.[playerData.currentClassId]
+                ?.unlockedSkills || [];
+
+        const skillsMap = {
+            active: [] as Skill[],
+            locked: [] as Skill[],
+        };
+
+        let usedSkillIds = new Set<string>();
+
+        // 處理職業技能
+        classSkillList.forEach((skill) => {
+            if (classSkillIds.includes(skill.id)) {
+                if (!usedSkillIds.has(skill.id)) {
+                    if (checkRequirements(skill)) {
+                        skillsMap.active.push(skill);
+                    } else {
+                        skillsMap.locked.push(skill);
+                    }
+                    usedSkillIds.add(skill.id);
+                }
+            }
+        });
+
+        // 處理額外技能
+        unlockedSkills.forEach((skillId) => {
+            const skill = skills.find((s) => s.id === skillId);
+            if (
+                skill &&
+                checkRequirements(skill) &&
+                !usedSkillIds.has(skill.id)
             ) {
-              return existingItem;
+                skillsMap.active.push(skill);
+                usedSkillIds.add(skill.id);
+            }
+        });
+
+        return skillsMap;
+    }, [playerData]);
+
+    /**
+     * 使用技能
+     */
+    const useSkill = useCallback(
+        (skillId: string): boolean => {
+            if (!playerData?.characterStats) return false;
+
+            const skill = skills.find((s) => s.id === skillId);
+            if (!skill) return false;
+
+            const now = Date.now();
+
+            if (skillCooldowns[skillId] && now < skillCooldowns[skillId]) {
+                return false;
             }
 
-            const canAdd = Math.min(
-              remainingQuantity,
-              maxStack - existingItem.quantity
-            );
-            remainingQuantity -= canAdd;
+            if (playerData.characterStats.currentMana < skill.manaCost) {
+                return false;
+            }
 
-            return {
-              ...existingItem,
-              quantity: existingItem.quantity + canAdd,
-            };
-          });
-        }
+            if (
+                skill.requirements?.weapon &&
+                (!playerData.equipped.weapon ||
+                    !skill.requirements.weapon.includes(
+                        weapons.find((w) => w.id === playerData.equipped.weapon)
+                            ?.type as WeaponType,
+                    ))
+            ) {
+                return false;
+            }
 
-        // 如果還有剩餘數量，創建新的物品堆疊
-        while (remainingQuantity > 0 && newItems.length < prev.maxSlots) {
-          const emptySlot = findEmptySlot();
-          if (emptySlot === -1) break;
+            // 設置冷卻
+            setSkillCooldowns((prev) => ({
+                ...prev,
+                [skillId]: now + skill.cooldown * 1000,
+            }));
 
-          const maxStack = item.stackable
-            ? DEFAULT_INVENTORY_SETTINGS.maxStackByType[item.type] || 1
-            : 1;
-          const stackQuantity = Math.min(remainingQuantity, maxStack);
-
-          newItems.push({
-            itemId,
-            quantity: stackQuantity,
-            slot: emptySlot,
-          });
-
-          remainingQuantity -= stackQuantity;
-        }
-
-        const newState = {
-          ...prev,
-          items: newItems,
-        };
-
-        // 更新玩家資料
-        if (onPlayerChange && playerData) {
-          onPlayerChange({
-            ...playerData,
-            inventory: {
-              ...playerData.inventory,
-              state: newState,
-              // 添加操作歷史
-              actionHistory: [
-                ...(playerData.inventory.actionHistory || []),
-                {
-                  type: "add",
-                  itemId,
-                  quantity,
-                  timestamp: Date.now(),
+            // 扣除魔力
+            dispatch({
+                type: "UPDATE_STATS",
+                payload: {
+                    currentMana:
+                        playerData.characterStats.currentMana - skill.manaCost,
                 },
-              ],
-            },
-          });
-        }
-
-        return newState;
-      });
-
-      return true;
-    },
-    [inventoryState, findEmptySlot, onPlayerChange, playerData]
-  );
-
-  /**
-   * 從背包移除物品
-   */
-  const removeFromInventory = useCallback(
-    (slot: number, quantity: number = 1): boolean => {
-      if (quantity <= 0) return false;
-
-      setInventoryState((prev) => {
-        const item = prev.items.find((i) => i.slot === slot);
-        if (!item) return prev;
-
-        let newItems = [...prev.items];
-        if (item.quantity <= quantity) {
-          newItems = newItems.filter((i) => i.slot !== slot);
-        } else {
-          newItems = newItems.map((i) =>
-            i.slot === slot ? { ...i, quantity: i.quantity - quantity } : i
-          );
-        }
-
-        const newState = {
-          ...prev,
-          items: newItems,
-        };
-
-        // 更新玩家資料
-        if (onPlayerChange && playerData) {
-          onPlayerChange({
-            ...playerData,
-            inventory: {
-              ...playerData.inventory,
-              state: newState,
-              actionHistory: [
-                ...(playerData.inventory.actionHistory || []),
-                {
-                  type: "remove",
-                  itemId: item.itemId,
-                  quantity,
-                  fromSlot: slot,
-                  timestamp: Date.now(),
-                },
-              ],
-            },
-          });
-        }
-
-        return newState;
-      });
-
-      return true;
-    },
-    [onPlayerChange, playerData]
-  );
-
-  /**
-   * 移動背包物品
-   */
-  const moveItem = useCallback(
-    (fromSlot: number, toSlot: number): boolean => {
-      if (fromSlot === toSlot) return false;
-
-      setInventoryState((prev) => {
-        const fromItem = prev.items.find((i) => i.slot === fromSlot);
-        if (!fromItem) return prev;
-
-        let newItems = [...prev.items];
-        const toItem = newItems.find((i) => i.slot === toSlot);
-
-        // 檢查是否可以堆疊
-        if (
-          toItem &&
-          toItem.itemId === fromItem.itemId &&
-          !!items.find((i) => i.id === toItem.itemId)?.stackable
-        ) {
-          const maxStack =
-            DEFAULT_INVENTORY_SETTINGS.maxStackByType[
-              items.find((i) => i.id === toItem.itemId)?.type || "misc"
-            ];
-          const totalQuantity = fromItem.quantity + toItem.quantity;
-
-          if (totalQuantity <= maxStack) {
-            // 可以完全堆疊
-            newItems = newItems.filter((i) => i.slot !== fromSlot);
-            newItems = newItems.map((i) =>
-              i.slot === toSlot ? { ...i, quantity: totalQuantity } : i
-            );
-          } else {
-            // 部分堆疊
-            newItems = newItems.map((i) => {
-              if (i.slot === toSlot) {
-                return { ...i, quantity: maxStack };
-              }
-              if (i.slot === fromSlot) {
-                return { ...i, quantity: totalQuantity - maxStack };
-              }
-              return i;
             });
-          }
-        } else {
-          // 直接交換位置
-          newItems = newItems.map((i) => {
-            if (i.slot === fromSlot) {
-              return { ...i, slot: toSlot };
-            }
-            if (i.slot === toSlot) {
-              return { ...i, slot: fromSlot };
-            }
-            return i;
-          });
-        }
 
-        const newState = {
-          ...prev,
-          items: newItems,
-        };
+            // 處理技能效果
+            if (skill.effects) {
+                setActiveEffects((prev) => {
+                    const newEffects = { ...prev };
+                    skill.effects?.forEach((effect) => {
+                        if (Math.random() * 100 <= (effect.chance || 100)) {
+                            newEffects[effect.type] =
+                                now + effect.duration * 1000;
+                        }
+                    });
+                    return newEffects;
+                });
+            }
 
-        // 更新玩家資料
-        if (onPlayerChange && playerData) {
-          onPlayerChange({
-            ...playerData,
-            inventory: {
-              ...playerData.inventory,
-              state: newState,
-              actionHistory: [
-                ...(playerData.inventory.actionHistory || []),
-                {
-                  type: "move",
-                  itemId: fromItem.itemId,
-                  quantity: fromItem.quantity,
-                  fromSlot,
-                  toSlot,
-                  timestamp: Date.now(),
+            return true;
+        },
+        [playerData, skillCooldowns, dispatch],
+    );
+
+    //#endregion
+
+    //#region 裝備系統
+
+    /**
+     * 檢查是否可以裝備武器
+     */
+    const canEquipWeapon = useCallback(
+        (weapon: Weapon): boolean => {
+            if (!playerData?.currentClassId || !playerData?.characterStats)
+                return false;
+
+            const currentClass = classes[playerData.currentClassId];
+            if (!currentClass) return false;
+
+            if (!currentClass.allowedWeapons.includes(weapon.type))
+                return false;
+
+            const stats = playerData.characterStats;
+            if (weapon.requirements) {
+                const { requirements } = weapon;
+                if (
+                    (requirements.level && stats.level < requirements.level) ||
+                    (requirements.strength &&
+                        stats.strength < requirements.strength) ||
+                    (requirements.dexterity &&
+                        stats.dexterity < requirements.dexterity) ||
+                    (requirements.intelligence &&
+                        stats.intelligence < requirements.intelligence)
+                ) {
+                    return false;
+                }
+            }
+
+            return true;
+        },
+        [playerData],
+    );
+
+    /**
+     * 裝備武器
+     */
+    const equipWeapon = useCallback(
+        (weapon: Weapon): boolean => {
+            if (!canEquipWeapon(weapon)) return false;
+
+            dispatch({
+                type: "UPDATE_PLAYER",
+                payload: {
+                    equipped: {
+                        ...(playerData?.equipped || {}),
+                        weapon: weapon.id,
+                    },
                 },
-              ],
-            },
-          });
-        }
-
-        return newState;
-      });
-
-      return true;
-    },
-    [onPlayerChange, playerData]
-  );
-
-  /**
-   * 整理背包
-   * 按照物品類型和ID排序，並自動堆疊
-   */
-  const sortInventory = useCallback(() => {
-    setInventoryState((prev) => {
-      // 1. 收集所有物品資訊
-      const itemsWithInfo = prev.items
-        .map((invItem) => {
-          const itemData = items.find((i) => i.id === invItem.itemId);
-          return {
-            ...invItem,
-            itemData,
-          };
-        })
-        .filter((item) => !!item.itemData);
-
-      // 2. 合併可堆疊物品
-      const itemGroups = new Map<string, typeof itemsWithInfo>();
-      itemsWithInfo.forEach((item) => {
-        const existingGroup = itemGroups.get(item.itemId) || [];
-        itemGroups.set(item.itemId, [...existingGroup, item]);
-      });
-
-      // 3. 重新分配堆疊和位置
-      const newItems: InventoryItem[] = [];
-      const sortedIds = Array.from(itemGroups.keys()).sort((a, b) => {
-        const itemA = items.find((i) => i.id === a);
-        const itemB = items.find((i) => i.id === b);
-        if (!itemA || !itemB) return 0;
-
-        // 按類型排序
-        const typeCompare =
-          ITEM_TYPE_WEIGHT[itemA.type] - ITEM_TYPE_WEIGHT[itemB.type];
-        if (typeCompare !== 0) return typeCompare;
-
-        // 同類型按ID排序
-        return itemA.id.localeCompare(itemB.id);
-      });
-
-      let currentSlot = 0;
-      sortedIds.forEach((id) => {
-        const group = itemGroups.get(id) || [];
-        const itemData = items.find((i) => i.id === id);
-        if (!itemData) return;
-
-        if (itemData.stackable) {
-          const maxStack =
-            DEFAULT_INVENTORY_SETTINGS.maxStackByType[itemData.type];
-          let totalQuantity = group.reduce(
-            (sum, item) => sum + item.quantity,
-            0
-          );
-
-          while (totalQuantity > 0 && currentSlot < prev.maxSlots) {
-            const stackSize = Math.min(totalQuantity, maxStack);
-            newItems.push({
-              itemId: id,
-              quantity: stackSize,
-              slot: currentSlot,
             });
-            totalQuantity -= stackSize;
-            currentSlot++;
-          }
-        } else {
-          group.forEach((item) => {
-            if (currentSlot < prev.maxSlots) {
-              newItems.push({
-                itemId: id,
-                quantity: 1,
-                slot: currentSlot,
-              });
-              currentSlot++;
-            }
-          });
-        }
-      });
 
-      const newState = {
-        ...prev,
-        items: newItems,
-      };
-
-      // 更新玩家資料
-      if (onPlayerChange && playerData) {
-        onPlayerChange({
-          ...playerData,
-          inventory: {
-            ...playerData.inventory,
-            state: newState,
-            actionHistory: [
-              ...(playerData.inventory.actionHistory || []),
-              {
-                type: "sort",
-                itemId: "",
-                quantity: 0,
-                timestamp: Date.now(),
-              },
-            ],
-          },
-        });
-      }
-
-      return newState;
-    });
-  }, [onPlayerChange, playerData]);
-
-  /**
-   * 拆分堆疊
-   * @param fromSlot 要拆分的物品所在格子
-   * @param toSlot 目標格子
-   * @param quantity 要拆分的數量
-   */
-  const splitStack = useCallback(
-    (fromSlot: number, toSlot: number, quantity: number): boolean => {
-      if (quantity <= 0) return false;
-
-      setInventoryState((prev) => {
-        // 檢查源物品
-        const sourceItem = prev.items.find((i) => i.slot === fromSlot);
-        if (!sourceItem || sourceItem.quantity <= quantity) return prev;
-
-        // 檢查目標格子
-        const targetItem = prev.items.find((i) => i.slot === toSlot);
-
-        // 如果目標格子有物品，檢查是否可以堆疊
-        if (targetItem) {
-          if (targetItem.itemId !== sourceItem.itemId) return prev;
-
-          const maxStack =
-            DEFAULT_INVENTORY_SETTINGS.maxStackByType[
-              items.find((i) => i.id === sourceItem.itemId)?.type || "misc"
-            ];
-
-          if (targetItem.quantity + quantity > maxStack) return prev;
-        }
-
-        // 創建新的物品列表
-        const newItems = prev.items.map((item) => {
-          if (item.slot === fromSlot) {
-            // 減少源堆疊數量
-            return {
-              ...item,
-              quantity: item.quantity - quantity,
-            };
-          }
-          if (item.slot === toSlot && targetItem) {
-            // 增加目標堆疊數量
-            return {
-              ...item,
-              quantity: item.quantity + quantity,
-            };
-          }
-          return item;
-        });
-
-        // 如果目標格子是空的，創建新堆疊
-        if (!targetItem) {
-          newItems.push({
-            itemId: sourceItem.itemId,
-            quantity,
-            slot: toSlot,
-          });
-        }
-
-        const newState = {
-          ...prev,
-          items: newItems,
-        };
-
-        // 更新玩家資料
-        if (onPlayerChange && playerData) {
-          onPlayerChange({
-            ...playerData,
-            inventory: {
-              ...playerData.inventory,
-              state: newState,
-              actionHistory: [
-                ...(playerData.inventory.actionHistory || []),
-                {
-                  type: "split",
-                  itemId: sourceItem.itemId,
-                  quantity,
-                  fromSlot,
-                  toSlot,
-                  timestamp: Date.now(),
-                },
-              ],
-            },
-          });
-        }
-
-        return newState;
-      });
-
-      return true;
-    },
-    [onPlayerChange, playerData]
-  );
-
-  /**
-   * 使用物品
-   * @param slot 要使用的物品所在格子
-   */
-  const useItem = useCallback(
-    (slot: number): boolean => {
-      setInventoryState((prev) => {
-        const item = prev.items.find((i) => i.slot === slot);
-        if (!item) return prev;
-
-        // 檢查物品是否可以使用
-        const itemData = items.find((i) => i.id === item.itemId);
-        if (!itemData?.usable) return prev;
-
-        // 創建新的物品列表，數量減1
-        const newItems = prev.items
-          .map((i) => {
-            if (i.slot === slot) {
-              if (i.quantity <= 1) {
-                return null; // 將會被過濾掉
-              }
-              return {
-                ...i,
-                quantity: i.quantity - 1,
-              };
-            }
-            return i;
-          })
-          .filter((i): i is InventoryItem => i !== null);
-
-        const newState = {
-          ...prev,
-          items: newItems,
-        };
-
-        // 更新玩家資料
-        if (onPlayerChange && playerData) {
-          onPlayerChange({
-            ...playerData,
-            inventory: {
-              ...playerData.inventory,
-              state: newState,
-              actionHistory: [
-                ...(playerData.inventory.actionHistory || []),
-                {
-                  type: "use",
-                  itemId: item.itemId,
-                  quantity: 1,
-                  fromSlot: slot,
-                  timestamp: Date.now(),
-                },
-              ],
-            },
-          });
-        }
-
-        return newState;
-      });
-
-      return true;
-    },
-    [onPlayerChange, playerData]
-  );
-
-  /**
-   * 檢查物品是否可以堆疊到指定位置
-   */
-  const canStackWith = useCallback(
-    (sourceItem: InventoryItem, targetSlot: number): boolean => {
-      const targetItem = inventoryState.items.find(
-        (i) => i.slot === targetSlot
-      );
-      if (!targetItem) return true; // 空格子可以堆疊
-
-      // 檢查是否是同一個物品
-      if (sourceItem.itemId !== targetItem.itemId) return false;
-
-      // 獲取物品資料
-      const itemData = items.find((i) => i.id === sourceItem.itemId);
-      if (!itemData?.stackable) return false;
-
-      // 檢查堆疊上限
-      const maxStack = DEFAULT_INVENTORY_SETTINGS.maxStackByType[itemData.type];
-      return targetItem.quantity < maxStack;
-    },
-    [inventoryState.items]
-  );
-
-  /**
-   * 批量丟棄物品
-   * @param slots 要丟棄的格子編號列表
-   */
-  const discardItems = useCallback(
-    (slots: number[]): boolean => {
-      if (slots.length === 0) return false;
-
-      setInventoryState((prev) => {
-        // 過濾掉不存在的格子
-        const validSlots = slots.filter((slot) =>
-          prev.items.some((item) => item.slot === slot)
-        );
-
-        if (validSlots.length === 0) return prev;
-
-        // 創建新的物品列表，排除要丟棄的物品
-        const newItems = prev.items.filter(
-          (item) => !validSlots.includes(item.slot)
-        );
-
-        const newState = {
-          ...prev,
-          items: newItems,
-        };
-
-        // 記錄要丟棄的物品資訊，用於歷史記錄
-        const discardedItems = prev.items.filter((item) =>
-          validSlots.includes(item.slot)
-        );
-
-        // 更新玩家資料
-        if (onPlayerChange && playerData) {
-          onPlayerChange({
-            ...playerData,
-            inventory: {
-              ...playerData.inventory,
-              state: newState,
-              actionHistory: [
-                ...(playerData.inventory.actionHistory || []),
-                ...discardedItems.map((item) => ({
-                  type: "remove" as const,
-                  itemId: item.itemId,
-                  quantity: item.quantity,
-                  fromSlot: item.slot,
-                  timestamp: Date.now(),
-                })),
-              ],
-            },
-          });
-        }
-
-        return newState;
-      });
-
-      return true;
-    },
-    [onPlayerChange, playerData]
-  );
-
-  /**
-   * 檢查是否可以裝備武器
-   */
-  const canEquipWeapon = useCallback(
-    (weapon: Weapon): boolean => {
-      if (!currentClass || !playerData?.characterStats) return false;
-      const characterStats = playerData.characterStats;
-
-      if (!currentClass.allowedWeapons.includes(weapon.type)) return false;
-
-      if (weapon.requirements) {
-        const { requirements } = weapon;
-        if (
-          (requirements.level && characterStats.level < requirements.level) ||
-          (requirements.strength &&
-            characterStats.strength < requirements.strength) ||
-          (requirements.dexterity &&
-            characterStats.dexterity < requirements.dexterity) ||
-          (requirements.intelligence &&
-            characterStats.intelligence < requirements.intelligence)
-        ) {
-          return false;
-        }
-      }
-
-      return true;
-    },
-    [currentClass, playerData?.characterStats]
-  );
-
-  /**
-   * 裝備武器
-   */
-  const equipWeapon = useCallback(
-    (weapon: Weapon): boolean => {
-      if (!canEquipWeapon(weapon)) return false;
-
-      setEquipment((prev) => ({
-        ...prev,
-        weapon,
-      }));
-
-      return true;
-    },
-    [canEquipWeapon]
-  );
-
-  /**
-   * 使用技能
-   */
-  const useSkill = useCallback(
-    (skillId: string): boolean => {
-      const skill = skillMap.get(skillId);
-      if (!skill || !playerData?.characterStats) return false;
-      const characterStats = playerData.characterStats;
-
-      const now = Date.now();
-
-      if (skillCooldowns[skillId] && now < skillCooldowns[skillId]) {
-        return false;
-      }
-
-      if (characterStats.mana < skill.manaCost) {
-        return false;
-      }
-
-      if (
-        skill.requirements?.weapon &&
-        (!equipment.weapon ||
-          !skill.requirements.weapon.includes(equipment.weapon.type))
-      ) {
-        return false;
-      }
-
-      setSkillCooldowns((prev) => ({
-        ...prev,
-        [skillId]: now + skill.cooldown * 1000,
-      }));
-
-      // 更新魔力值
-      const newStats = {
-        ...playerData,
-        characterStats: {
-          ...characterStats,
-          mana: characterStats.mana - skill.manaCost,
+            return true;
         },
-      };
-      onPlayerChange?.(newStats);
+        [canEquipWeapon, playerData, dispatch],
+    );
 
-      // 處理技能效果
-      if (skill.effects) {
-        setActiveEffects((prev) => {
-          const newEffects = { ...prev };
-          skill.effects?.forEach((effect) => {
-            if (Math.random() * 100 <= (effect.chance || 100)) {
-              newEffects[effect.type] = now + effect.duration * 1000;
-            }
-          });
-          return newEffects;
-        });
-      }
+    //#endregion
 
-      return true;
-    },
-    [playerData, equipment.weapon, skillCooldowns, onPlayerChange]
-  );
+    return {
+        // 貨幣相關
+        addCurrency,
+        deductCurrency,
+        hasSufficientCurrency,
+        getCurrencyBalance,
 
-  /**
-   * 獲取技能冷卻時間
-   */
-  const getSkillCooldown = useCallback(
-    (skillId: string): number => {
-      const endTime = skillCooldowns[skillId];
-      if (!endTime) return 0;
+        // 背包相關
+        inventoryState,
+        addToInventory,
+        removeFromInventory,
+        moveItem,
+        splitStack,
+        sortInventory,
+        canStackWith: findEmptySlot,
 
-      const remainingTime = Math.max(0, endTime - Date.now()) / 1000;
-      return Math.round(remainingTime * 10) / 10;
-    },
-    [skillCooldowns]
-  );
+        // 角色狀態相關
+        updateCurrentHealth,
+        updateCurrentMana,
+        updatePlayerByLevel,
+        gainExperience,
+        getExpPercentage,
 
-  /**
-   * 檢查效果是否活動中
-   */
-  const isEffectActive = useCallback(
-    (effectType: EffectType): boolean => {
-      const endTime = activeEffects[effectType];
-      return endTime ? Date.now() < endTime : false;
-    },
-    [activeEffects]
-  );
+        // 技能相關
+        skillCooldowns,
+        activeEffects,
+        useSkill,
+        getSkillCooldown,
+        getAvailableSkills,
+        isEffectActive,
+        isClassSkillAvailable,
 
-  /**
-   * 檢查職業是否擁有該技能
-   */
-  const isClassSkillAvailable = useCallback(
-    (classId: string, skillId: string): boolean =>
-      skillsByClass[classId]?.some((skill) => skill.id === skillId) ?? false,
-    []
-  );
-
-  /**
-   * 獲取所有當前職業已學習/未學習技能
-   */
-  const getAvailableSkills = useCallback(() => {
-    if (!playerData?.currentClassId || !currentClass)
-      return {
-        active: [],
-        locked: [],
-      };
-
-    const checkRequirements = (skill: Skill): boolean => {
-      if (!skill.requirements) return true;
-
-      const { level, weapon } = skill.requirements;
-      if (level && playerData.characterStats.level < level) return false;
-
-      if (weapon && playerData.equipped.weapon) {
-        const equippedWeaponType = weapons.find(
-          (w) => w.id === playerData.equipped.weapon
-        )?.type;
-        return equippedWeaponType && weapon.includes(equippedWeaponType);
-      }
-      return true;
+        // 裝備相關
+        canEquipWeapon,
+        equipWeapon,
     };
-
-    // 所有基礎/進階/終極技能ID
-    const classSkillIds = [
-      ...currentClass.skills.basic,
-      ...currentClass.skills.advanced,
-      ...currentClass.skills.ultimate,
-    ];
-
-    // 當前職業可學技能列表
-    const classSkillList = skillsByClass[playerData.currentClassId] || [];
-
-    // 額外已學技能列表
-    const unlockedSkills =
-      playerData.classProgress?.[playerData.currentClassId]?.unlockedSkills ||
-      [];
-
-    const skillsMap = {
-      active: [] as Skill[],
-      locked: [] as Skill[],
-    };
-
-    let useSkillIds = new Set<string>();
-
-    // 處理職業技能
-    classSkillList.forEach((skill) => {
-      if (classSkillIds.includes(skill.id)) {
-        if (!useSkillIds.has(skill.id)) {
-          if (checkRequirements(skill)) {
-            skillsMap.active.push(skill);
-          } else {
-            skillsMap.locked.push(skill);
-          }
-          useSkillIds.add(skill.id);
-        }
-      }
-    });
-
-    // 處理額外技能
-    unlockedSkills.forEach((skillId) => {
-      const skill = skillMap.get(skillId);
-      if (skill && checkRequirements(skill) && !useSkillIds.has(skill.id)) {
-        skillsMap.active.push(skill);
-        useSkillIds.add(skill.id);
-      }
-    });
-
-    return skillsMap;
-  }, [playerData, currentClass]);
-
-  /**
-   * 獲取當前經驗值百分比
-   */
-  const getExpPercentage = useCallback((): number => {
-    if (!playerData?.characterStats) return 0;
-    const { experience, nextLevelExp } = playerData.characterStats;
-    return (experience / nextLevelExp) * 100;
-  }, [playerData?.characterStats]);
-
-  /**
-   * 增加指定類型的貨幣
-   * @param type 貨幣類型
-   * @param amount 金額(需為正數)
-   */
-  const addCurrency = useCallback(
-    (type: CurrencyType, amount: number): boolean => {
-      if (!playerData || amount <= 0) return false;
-
-      const newPlayer = {
-        ...playerData,
-        currency: {
-          ...playerData.currency,
-          [type]: (playerData.currency[type] || 0) + amount,
-        },
-      };
-
-      onPlayerChange?.(newPlayer);
-      return true;
-    },
-    [playerData, onPlayerChange]
-  );
-
-  /**
-   * 扣除指定類型的貨幣
-   * @param type 貨幣類型
-   * @param amount 金額(需為正數)
-   * @returns 是否扣除成功
-   */
-  const deductCurrency = useCallback(
-    (type: CurrencyType, amount: number): boolean => {
-      if (!playerData || amount <= 0) return false;
-
-      // 檢查餘額是否足夠
-      if ((playerData.currency[type] || 0) < amount) return false;
-
-      const newPlayer = {
-        ...playerData,
-        currency: {
-          ...playerData.currency,
-          [type]: (playerData.currency[type] || 0) - amount,
-        },
-      };
-
-      onPlayerChange?.(newPlayer);
-      return true;
-    },
-    [playerData, onPlayerChange]
-  );
-
-  /**
-   * 檢查指定類型的貨幣是否足夠
-   * @param type 貨幣類型
-   * @param amount 要檢查的金額
-   */
-  const hasSufficientCurrency = useCallback(
-    (type: CurrencyType, amount: number): boolean => {
-      if (!playerData || amount <= 0) return false;
-      return (playerData.currency[type] || 0) >= amount;
-    },
-    [playerData]
-  );
-
-  /**
-   * 獲取指定類型的貨幣餘額
-   * @param type 貨幣類型
-   */
-  const getCurrencyBalance = useCallback(
-    (type: CurrencyType): number => {
-      if (!playerData) return 0;
-      return playerData.currency[type] || 0;
-    },
-    [playerData]
-  );
-
-  return {
-    // 角色狀態相關
-    updateCurrentHealth,
-    updateCurrentMana,
-    updatePlayerByLevel,
-
-    // 背包相關
-    inventoryState, // 背包狀態
-    addToInventory, // 添加物品
-    removeFromInventory, // 移除物品
-    moveItem, // 移動物品
-    splitStack, // 拆分堆疊
-    sortInventory, // 整理背包
-    useItem, // 使用物品
-    canStackWith, // 檢查堆疊
-    discardItems, // 批量丟棄
-
-    // 裝備相關
-    canEquipWeapon,
-    equipWeapon,
-
-    // 技能相關
-    activeEffects,
-    useSkill,
-    getSkillCooldown,
-    getAvailableSkills,
-    isEffectActive,
-    isClassSkillAvailable,
-
-    // 經驗值相關
-    gainExperience,
-    getExpPercentage,
-
-    // 貨幣相關
-    addCurrency,
-    deductCurrency,
-    hasSufficientCurrency,
-    getCurrencyBalance,
-  };
 };

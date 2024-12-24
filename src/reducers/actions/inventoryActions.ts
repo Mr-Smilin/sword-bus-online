@@ -1,11 +1,15 @@
-import { InventoryItem, InventoryState } from "../../data/type";
-import { InventoryAction, InventoryActionType } from "../actionTypes";
+import {
+    InventoryItem,
+    InventoryState,
+    InventoryAction as InvAction,
+} from "../../data/type";
+import { InventoryAction } from "../actionTypes";
 
 /**
  * 建立背包操作歷史
  */
 const createHistoryAction = (
-    type: InventoryActionType,
+    type: InvAction["type"],
     itemId: string,
     quantity: number,
     fromSlot?: number,
@@ -30,7 +34,7 @@ export const addItem = (
     type: "UPDATE_INVENTORY",
     payload: {
         items,
-        historyAction: createHistoryAction("ADD_ITEM", itemId, quantity),
+        historyAction: createHistoryAction("add", itemId, quantity),
     },
 });
 
@@ -47,7 +51,7 @@ export const removeItem = (
     payload: {
         items,
         historyAction: createHistoryAction(
-            "REMOVE_ITEM",
+            "remove",
             itemId,
             quantity,
             fromSlot,
@@ -69,7 +73,7 @@ export const moveItem = (
     payload: {
         items,
         historyAction: createHistoryAction(
-            "MOVE_ITEM",
+            "move",
             itemId,
             quantity,
             fromSlot,
@@ -92,7 +96,7 @@ export const splitStack = (
     payload: {
         items,
         historyAction: createHistoryAction(
-            "SPLIT_STACK",
+            "split",
             itemId,
             quantity,
             fromSlot,
@@ -108,6 +112,6 @@ export const sortInventory = (items: InventoryItem[]): InventoryAction => ({
     type: "UPDATE_INVENTORY",
     payload: {
         items,
-        historyAction: createHistoryAction("SORT_INVENTORY", "", 0),
+        historyAction: createHistoryAction("sort", "", 0),
     },
 });

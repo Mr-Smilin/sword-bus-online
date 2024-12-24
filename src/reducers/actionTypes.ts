@@ -20,16 +20,6 @@ export type CurrencyAction = {
     };
 };
 
-// 背包相關
-export type InventoryActionType =
-    | "ADD_ITEM" // 添加物品
-    | "REMOVE_ITEM" // 移除物品
-    | "MOVE_ITEM" // 移動物品
-    | "SPLIT_STACK" // 拆分堆疊
-    | "MERGE_STACK" // 合併堆疊
-    | "SORT_INVENTORY" // 整理背包
-    | "USE_ITEM"; // 使用物品
-
 // 背包相關的 action
 export type InventoryAction = {
     type: "UPDATE_INVENTORY";

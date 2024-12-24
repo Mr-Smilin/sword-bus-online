@@ -7,7 +7,6 @@ import { inventoryReducer } from "./state/inventoryReducer";
 import {
     statsReducer,
     locationReducer,
-    mapReducer,
     playerReducer,
 } from "./state/playerReducer";
 
